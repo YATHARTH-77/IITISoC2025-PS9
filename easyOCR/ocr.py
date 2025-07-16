@@ -22,7 +22,7 @@ def run_ocr_all(image_path):
     return best_result
 
 # Example usage
-image_path = 'test_images/image.png'  # Replace with your test image
+image_path = 'test_images/image_e2.png'  # Replace with your test image
 image = Image.open(image_path)
 image.show()  # View the image for verification
 
