@@ -5,8 +5,8 @@ import json
 import os
 
 # Define relative paths
-json_path = "../CRAFT Detection Model/result/coords_pre_img1.json"
-image_path = "../CRAFT Detection Model/result/res_pre_img1.png"
+json_path = "../CRAFT Detection Model/result/coords_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.json"
+image_path = "../CRAFT Detection Model/result/res_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.jpg"
 output_folder = "output_folder"
 
 # Ensure the output folder exists
@@ -101,4 +101,4 @@ with open(output_json_path, 'w') as f:
     json.dump(output_results, f, ensure_ascii=False, indent=4)
 
 # Display the results in the console
-print(json.dumps(output_results, ensure_ascii=False, indent=4))
+# print(json.dumps(output_results, ensure_ascii=False, indent=4))
