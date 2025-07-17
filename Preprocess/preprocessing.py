@@ -56,7 +56,7 @@ def display_comparison(original, processed):
 #processed = preprocess_image(image_path)
 #im=cv.imread(image_path)
 #display_comparison(im,processed)
-process_folder('Preprocess\input','Preprocess\preprocessed output')
+process_folder('input','preprocessed output')
 #filename = os.path.basename(image_path)
 #output_path = os.path.join('preprocessed output', f"pre_{filename}")
 #cv.imwrite(output_path, processed)
