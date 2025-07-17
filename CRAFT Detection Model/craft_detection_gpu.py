@@ -124,6 +124,6 @@ def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth
     return scaled_boxes, scaled_polys
 
 if __name__ == "__main__":
-    image_path = 'test_images/test.jpg'
+    image_path = 'test_images/test.png'
     output_dir = 'result'
     detect_text(image_path, output_dir)
