@@ -1,0 +1,70 @@
+[
+    {
+        "source_image": "pre_79842694-yekaterinburg-russia-traffic-signs-on-the-road.jpg",
+        "boxes": [
+            {
+                "coordinates": [
+                    [
+                        143,
+                        30
+                    ],
+                    [
+                        174,
+                        60
+                    ],
+                    [
+                        88,
+                        148
+                    ],
+                    [
+                        57,
+                        119
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        701,
+                        353
+                    ],
+                    [
+                        845,
+                        366
+                    ],
+                    [
+                        841,
+                        415
+                    ],
+                    [
+                        696,
+                        402
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        156,
+                        381
+                    ],
+                    [
+                        223,
+                        381
+                    ],
+                    [
+                        223,
+                        436
+                    ],
+                    [
+                        156,
+                        436
+                    ]
+                ],
+                "type": "polygon"
+            }
+        ]
+    }
+]

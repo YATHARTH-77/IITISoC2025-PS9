@@ -1,0 +1,133 @@
+[
+    {
+        "source_image": "pre_road-sign-warns-motorists-crossing-pilgrims-spain-province-autonomous-region-la-rioja-entering-city-najera-38337734.jpg",
+        "boxes": [
+            {
+                "coordinates": [
+                    [
+                        503,
+                        70
+                    ],
+                    [
+                        609,
+                        60
+                    ],
+                    [
+                        612,
+                        86
+                    ],
+                    [
+                        505,
+                        96
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        557,
+                        205
+                    ],
+                    [
+                        633,
+                        201
+                    ],
+                    [
+                        634,
+                        222
+                    ],
+                    [
+                        558,
+                        225
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        489,
+                        208
+                    ],
+                    [
+                        551,
+                        205
+                    ],
+                    [
+                        552,
+                        227
+                    ],
+                    [
+                        490,
+                        229
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        528,
+                        229
+                    ],
+                    [
+                        626,
+                        224
+                    ],
+                    [
+                        627,
+                        245
+                    ],
+                    [
+                        529,
+                        250
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        497,
+                        232
+                    ],
+                    [
+                        522,
+                        232
+                    ],
+                    [
+                        522,
+                        250
+                    ],
+                    [
+                        497,
+                        250
+                    ]
+                ],
+                "type": "polygon"
+            },
+            {
+                "coordinates": [
+                    [
+                        248,
+                        258
+                    ],
+                    [
+                        472,
+                        260
+                    ],
+                    [
+                        471,
+                        299
+                    ],
+                    [
+                        247,
+                        298
+                    ]
+                ],
+                "type": "polygon"
+            }
+        ]
+    }
+]

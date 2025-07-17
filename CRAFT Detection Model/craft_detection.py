@@ -120,7 +120,7 @@ def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth
 
 if __name__ == "__main__":
     image_dir = 'test_images'
-    output_dir = 'result'
+    output_dir = '../easyOCR/result'
     trained_model = 'weights/craft_mlt_25k.pth'
     cuda = False
     poly = False
