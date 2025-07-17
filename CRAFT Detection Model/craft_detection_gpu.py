@@ -8,8 +8,7 @@ from craft_utils import getDetBoxes
 from imgproc import loadImage, resize_aspect_ratio, normalizeMeanVariance
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-torch.backends.cudnn.enabled = True  # Re-enable CuDNN
-torch.backends.cudnn.benchmark = False  # Avoid dynamic algorithm selection
+torch.backends.cudnn.enabled = False  # Disable CuDNN to avoid potential errors
 print(f"Using device: {device}")
 
 def copyStateDict(state_dict):
@@ -26,10 +25,7 @@ def copyStateDict(state_dict):
 
 def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth', 
                 text_threshold=0.7, link_threshold=0.4, low_text=0.4, 
-                canvas_size=1280, mag_ratio=1.5, cuda=False, poly=False):
-    
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
+                canvas_size=1024, mag_ratio=1.0, poly=False):
     """
     Detect text in an image using the CRAFT model and output results.
     
@@ -42,35 +38,60 @@ def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth
         low_text (float): Low-bound score for text regions.
         canvas_size (int): Maximum image size for inference.
         mag_ratio (float): Image magnification ratio.
-        cuda (bool): Use CUDA for inference if True.
         poly (bool): Return polygons instead of rectangles if True.
     
     Returns:
-        tuple: Scaled boxes and polygons coordinates.
+        tuple: Scaled boxes and polygons coordinates, or None if error occurs.
     """
+    print(f"Using device: {device}")
+    
+    # Validate image
+    img_check = cv2.imread(image_path)
+    if img_check is None:
+        print(f"Error: Could not load image at {image_path}")
+        return None, None
+
     # Load the CRAFT model
     net = CRAFT()
     print(f'Loading weights from {trained_model}')
-    state_dict = torch.load(trained_model, map_location=device)
-    net.load_state_dict(copyStateDict(state_dict))
-    net.to(device)  # Move the model to the GPU
+    try:
+        state_dict = torch.load(trained_model, map_location=device)
+        net.load_state_dict(copyStateDict(state_dict))
+    except Exception as e:
+        print(f"Error loading model weights: {e}")
+        return None, None
+
+    net.to(device)
     net.eval()
 
     # Load and preprocess the image
-    image = loadImage(image_path)
-    img_resized, ratio, _ = resize_aspect_ratio(image, canvas_size, cv2.INTER_LINEAR, mag_ratio)
-    x = normalizeMeanVariance(img_resized)
-    x = torch.from_numpy(x).permute(2, 0, 1).float().unsqueeze(0)
-    x = x.to(device)
+    try:
+        image = loadImage(image_path)
+        img_resized, ratio, _ = resize_aspect_ratio(image, canvas_size, cv2.INTER_LINEAR, mag_ratio)
+        x = normalizeMeanVariance(img_resized)
+        x = torch.from_numpy(x).permute(2, 0, 1).float().unsqueeze(0)
+        print(f"Input tensor shape: {x.shape}")
+        x = x.to(device)
+    except Exception as e:
+        print(f"Error in image preprocessing: {e}")
+        return None, None
 
     # Perform inference
-    with torch.no_grad():
-        y, _ = net(x)
-    score_text = y[0, :, :, 0].cpu().numpy()
-    score_link = y[0, :, :, 1].cpu().numpy()
+    try:
+        with torch.no_grad():
+            y, _ = net(x)
+        score_text = y[0, :, :, 0].cpu().numpy()
+        score_link = y[0, :, :, 1].cpu().numpy()
+    except Exception as e:
+        print(f"Error during inference: {e}")
+        return None, None
 
     # Generate detection boxes
-    boxes, polys = getDetBoxes(score_text, score_link, text_threshold, link_threshold, low_text, poly)
+    try:
+        boxes, polys = getDetBoxes(score_text, score_link, text_threshold, link_threshold, low_text, poly)
+    except Exception as e:
+        print(f"Error generating detection boxes: {e}")
+        return None, None
 
     # Manually scale coordinates to original image size
     scale_factor = 2 / ratio
@@ -124,6 +145,13 @@ def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth
     return scaled_boxes, scaled_polys
 
 if __name__ == "__main__":
-    image_path = 'test_images/test.jpg'
-    output_dir = 'result'
-    detect_text(image_path, output_dir)
+    image_dir = 'test_images'
+    output_dir = '../easyOCR/result'
+    trained_model = 'weights/craft_mlt_25k.pth'
+    poly = False
+
+    for filename in os.listdir(image_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image_path = os.path.join(image_dir, filename)
+            print(f"Processing {filename}...")
+            detect_text(image_path, output_dir, trained_model, poly=poly)
