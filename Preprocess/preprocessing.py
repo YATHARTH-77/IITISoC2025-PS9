@@ -52,11 +52,11 @@ def display_comparison(original, processed):
     cv.destroyAllWindows()
 
 # Example usage
-image_path = "Preprocess/input/WhatsApp Image 2025-06-30 at 15.54.30_38c5591d.jpg"
-processed = preprocess_image(image_path)
-im=cv.imread(image_path)
-display_comparison(im,processed)
+#image_path = "D:\Coding\IITISoC2025-PS9\Preprocess\Datasets\English\\114.jpg"
+#processed = preprocess_image(image_path)
+#im=cv.imread(image_path)
+#display_comparison(im,processed)
 process_folder('Preprocess\input','Preprocess\preprocessed output')
-filename = os.path.basename(image_path)
-output_path = os.path.join('preprocessed output', f"pre_{filename}")
-cv.imwrite(output_path, processed)
+#filename = os.path.basename(image_path)
+#output_path = os.path.join('preprocessed output', f"pre_{filename}")
+#cv.imwrite(output_path, processed)
