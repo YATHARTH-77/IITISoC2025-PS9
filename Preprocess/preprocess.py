@@ -62,11 +62,12 @@ def process_folder(input_dir, output_dir):
                 cv.imwrite(out_path, processed)
             except Exception as e:
                 print(f"Error processing {filename}: {str(e)}")
-image_path = ''
-processed = preprocess_image(image_path)
-im = cv.imread(image_path)
-display_comparison(im, processed)
+#image_path = ''
+#processed = preprocess_image(image_path)
+#im = cv.imread(image_path)
+#display_comparison(im, processed)
 #fill output folder before \image path
-output_path=f'\{image_path}'
+#output_path=f'\{image_path}'
 #saving the image by specifying image path and output path above 
-cv.imwrite(output_path,processed)
+#cv.imwrite(output_path,processed)
+process_folder('Preprocess\input','CRAFT Detection Model\\test_images')
