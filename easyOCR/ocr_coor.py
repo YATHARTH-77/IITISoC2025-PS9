@@ -5,8 +5,8 @@ import json
 import os
 
 # Define relative paths
-json_path = "../CRAFT Detection Model/result/coords_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.json"
-image_path = "../CRAFT Detection Model/result/res_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.jpg"
+json_path = "result/coords_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.json"
+image_path = "result/res_WhatsApp Image 2025-07-14 at 23.35.32_9972846f.jpg"
 output_folder = "output_folder"
 
 # Ensure the output folder exists
