@@ -12,8 +12,8 @@ import json
 import pytesseract
 
 # Define paths
-json_path = "testing/coords_pre_Screenshot 2025-07-18 232616.json"  # CRAFT coordinates JSON
-image_path = "testing/res_pre_Screenshot 2025-07-18 232616.png"     # Input image
+json_path = "result/coords_pre_Screenshot 2025-07-18 232616.json"  # CRAFT coordinates JSON
+image_path = "result/res_pre_Screenshot 2025-07-18 232616.png"     # Input image
 output_folder = "output_folder"
 audio_output_dir = "audio_output"
 
