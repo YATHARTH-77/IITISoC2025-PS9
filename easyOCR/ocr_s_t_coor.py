@@ -9,10 +9,11 @@ import time
 from langdetect import detect
 import numpy as np
 import json
+import pytesseract
 
 # Define paths
-json_path = "result/coords_pre_113320.json"  # CRAFT coordinates JSON
-image_path = "result/res_pre_113320.jpeg"     # Input image
+json_path = "testing/coords_pre_Screenshot 2025-07-18 232616.json"  # CRAFT coordinates JSON
+image_path = "testing/res_pre_Screenshot 2025-07-18 232616.png"     # Input image
 output_folder = "output_folder"
 audio_output_dir = "audio_output"
 
@@ -21,10 +22,13 @@ os.makedirs(output_folder, exist_ok=True)
 os.makedirs(audio_output_dir, exist_ok=True)
 
 # Initialize OCR readers
-reader_ko_en = easyocr.Reader(['ko', 'en'], gpu=True)  # Korean with English
-reader_hi_en = easyocr.Reader(['hi', 'en'], gpu=True)  # Hindi with English
-reader_ru_en = easyocr.Reader(['ru', 'en'], gpu=True)  # Russian with English
-reader_multi = easyocr.Reader(['es', 'fr', 'de', 'it', 'tr'], gpu=True)  # Multi-language
+reader_ko_en = easyocr.Reader(['ko', 'en'], gpu=True)
+reader_hi_en = easyocr.Reader(['hi', 'en'], gpu=True)
+reader_ru_en = easyocr.Reader(['ru', 'en'], gpu=True)
+reader_multi = easyocr.Reader(['es', 'fr', 'de', 'it', 'tr'], gpu=True)
+
+# Set Tesseract path (adjust based on your system)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
 
 # Initialize translator
 translator = Translator()
@@ -66,16 +70,40 @@ def get_bounding_rect(polygon):
     return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
 
 # Function to run OCR with all readers and get the best result
-def run_ocr_all(image_np):
-    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)  # Convert to grayscale
-    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # Apply thresholding
+def run_ocr_all(image_np, box_id):
+    # Enhance image
+    scale_factor = 2
+    resized = cv2.resize(image_np, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+    gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+    sharpened = cv2.filter2D(gray, -1, kernel)
+    enhanced = cv2.equalizeHist(sharpened)
+    thresh = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    # Try EasyOCR with multiple versions
+    images_to_process = [resized, thresh, enhanced]
     results = []
-    results.extend(reader_ko_en.readtext(thresh))
-    results.extend(reader_hi_en.readtext(thresh))
-    results.extend(reader_ru_en.readtext(thresh))
-    results.extend(reader_multi.readtext(thresh))
-    best_result = max(results, key=lambda x: x[2] if len(x) == 3 else -1, default=None)
-    return best_result
+    for img in images_to_process:
+        results.extend(reader_ko_en.readtext(img))
+        results.extend(reader_hi_en.readtext(img))
+        results.extend(reader_ru_en.readtext(img))
+        results.extend(reader_multi.readtext(img))
+
+    # Fallback to Tesseract if no results
+    if not results:
+        text = pytesseract.image_to_string(resized, lang='hin+eng+kor+rus+spa+fra+deu+ita+tur', config='--psm 6')
+        if text.strip():
+            results.append((None, text.strip(), 0.5))  # Placeholder confidence
+
+    # Save image if no text detected
+    if not results:
+        cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
+
+    # Return the best result
+    if results:
+        best_result = max(results, key=lambda x: x[2] if len(x) == 3 else -1)
+        return best_result
+    return None
 
 # Function to detect language
 def detect_language(text):
@@ -92,14 +120,14 @@ for idx, polygon in enumerate(polygons):
         # Extract coordinates and crop image
         x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
         cropped_image = image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
-        cropped_image_np = np.array(cropped_image)  # Convert to NumPy array
-        
+        cropped_image_np = np.array(cropped_image)
+
         # Run OCR
-        best_result = run_ocr_all(cropped_image_np)
+        best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
-            
+
             # Detect language and generate TTS
             detected_lang = detect_language(text)
             tts_lang = lang_codes.get(detected_lang, 'en')
@@ -116,13 +144,13 @@ for idx, polygon in enumerate(polygons):
                 pygame.mixer.music.unload()
             except Exception as e:
                 audio_file = f"TTS failed: {e}"
-            
+
             # Translate to English
             try:
                 translated_text = translator.translate(text, dest='en').text
             except Exception as e:
                 translated_text = f"Translation failed: {e}"
-            
+
             # Store result
             output_results.append({
                 "coordinates": get_coordinates(polygon),
