@@ -1,0 +1,188 @@
+import cv2
+from PIL import Image
+from googletrans import Translator
+import os
+from gtts import gTTS
+import pygame
+import time
+from langdetect import detect
+import numpy as np
+import json
+import pytesseract
+
+# Define paths
+json_path = "../easyOCR/result/coords_pre_113320.json"  # CRAFT coordinates JSON
+image_path = "../easyOCR/result/res_pre_113320.jpeg"     # Input image
+output_folder = "output_folder"
+audio_output_dir = "audio_output"
+
+# Create output directories if they don’t exist
+os.makedirs(output_folder, exist_ok=True)
+os.makedirs(audio_output_dir, exist_ok=True)
+
+# Set Tesseract path (adjust based on your system)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
+
+# Initialize translator
+translator = Translator()
+
+# Language code mapping for gTTS
+lang_codes = {
+    'ko': 'ko', 'hi': 'hi', 'ru': 'ru', 'es': 'es', 'fr': 'fr',
+    'de': 'de', 'it': 'it', 'tr': 'tr', 'en': 'en'
+}
+
+# Load the image
+if not os.path.exists(image_path):
+    raise FileNotFoundError(f"Image not found: {image_path}")
+image = Image.open(image_path)
+
+# Load coordinates from the JSON file and debug structure
+with open(json_path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+print("JSON structure:", json.dumps(data, indent=2))
+if isinstance(data, list):
+    polygons = [item["boxes"] for item in data if "boxes" in item]  # Extract all boxes lists
+    polygons = [poly for sublist in polygons for poly in sublist]  # Flatten the list
+elif isinstance(data, dict) and "boxes" in data:
+    polygons = data["boxes"]
+else:
+    raise ValueError("JSON format invalid. Expected a list of dicts with 'boxes' key or a dict with 'boxes' key.")
+
+# Function to extract coordinates with fallback
+def get_coordinates(polygon):
+    if isinstance(polygon, dict) and "coordinates" in polygon:
+        return polygon["coordinates"]
+    raise KeyError(f"No 'coordinates' key found in {polygon}")
+
+# Function to compute bounding rectangle from coordinates
+def get_bounding_rect(polygon):
+    coords = get_coordinates(polygon)
+    xs = [point[0] for point in coords]
+    ys = [point[1] for point in coords]
+    return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
+
+# Function to run OCR with Tesseract and get the result
+def run_ocr_tesseract(image_np, box_id):
+    # Enhance image
+    scale_factor = 3  # Increased for small text
+    resized = cv2.resize(image_np, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+    gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+    sharpened = cv2.filter2D(gray, -1, kernel)
+    enhanced = cv2.equalizeHist(sharpened)
+    _, thresh_otsu = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Debug: Save the cropped region for inspection
+    cv2.imwrite(os.path.join(output_folder, f"region_{box_id}.png"), image_np)
+
+    # Try Tesseract with single-line mode for one word
+    try:
+        # First attempt with Hindi + English, single line
+        text = pytesseract.image_to_string(thresh_otsu, lang='hin+eng', config='--psm 7 --oem 3')
+        text = text.strip()
+        if text:
+            return (None, text, 0.7)  # Placeholder confidence
+    except Exception as e:
+        print(f"Tesseract error (hin+eng) for region {box_id}: {e}")
+
+    # Fallback to English only if Hindi fails
+    try:
+        text = pytesseract.image_to_string(thresh_otsu, lang='eng', config='--psm 7 --oem 3')
+        text = text.strip()
+        if text:
+            return (None, text, 0.7)
+    except Exception as e:
+        print(f"Tesseract error (eng) for region {box_id}: {e}")
+
+    # Save image if no text detected
+    cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
+    return None
+
+# Function to detect language
+def detect_language(text):
+    try:
+        return detect(text)
+    except:
+        return 'en'  # Fallback to English
+
+# Process each text region
+output_results = []
+image_base = os.path.basename(image_path).split('.')[0]
+for idx, polygon in enumerate(polygons):
+    try:
+        # Extract coordinates and crop image
+        x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
+        cropped_image = image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
+        cropped_image_np = np.array(cropped_image)
+
+        # Run OCR
+        best_result = run_ocr_tesseract(cropped_image_np, f"{image_base}_{idx}")
+        if best_result and len(best_result) == 3:
+            bbox, text, prob = best_result
+            print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
+
+            # Detect language and generate TTS
+            detected_lang = detect_language(text)
+            tts_lang = lang_codes.get(detected_lang, 'en')
+            audio_file = os.path.join(audio_output_dir, f"audio_{image_base}_{idx}.mp3")
+            try:
+                tts = gTTS(text=text, lang=tts_lang)
+                tts.save(audio_file)
+                time.sleep(0.5)
+                pygame.mixer.init()
+                pygame.mixer.music.load(audio_file)
+                pygame.mixer.music.play()
+                while pygame.mixer.music.get_busy():
+                    pygame.time.wait(100)
+                pygame.mixer.music.unload()
+            except Exception as e:
+                audio_file = f"TTS failed: {e}"
+
+            # Translate to English
+            try:
+                translated_text = translator.translate(text, dest='en').text
+            except Exception as e:
+                translated_text = f"Translation failed: {e}"
+
+            # Store result
+            output_results.append({
+                "coordinates": get_coordinates(polygon),
+                "detected_text": text,
+                "translated_text": translated_text,
+                "confidence": prob,
+                "audio_file": audio_file
+            })
+        else:
+            output_results.append({
+                "coordinates": get_coordinates(polygon),
+                "detected_text": "No text detected",
+                "translated_text": "N/A",
+                "confidence": 0.0,
+                "audio_file": "N/A"
+            })
+    except KeyError as e:
+        print(f"Error processing region {idx}: Missing coordinates - {e}")
+        output_results.append({
+            "coordinates": [],
+            "detected_text": f"Error: {e}",
+            "translated_text": "N/A",
+            "confidence": 0.0,
+            "audio_file": "N/A"
+        })
+    except Exception as e:
+        print(f"Error processing region {idx}: {e}")
+        output_results.append({
+            "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
+            "detected_text": f"Error: {e}",
+            "translated_text": "N/A",
+            "confidence": 0.0,
+            "audio_file": "N/A"
+        })
+
+# Save results to JSON
+output_json_path = os.path.join(output_folder, "results.json")
+with open(output_json_path, 'w', encoding='utf-8') as f:
+    json.dump({"image": image_path, "texts": output_results}, f, ensure_ascii=False, indent=4)
+
+print(f"Results saved to {output_json_path}")
