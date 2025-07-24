@@ -1,7 +1,0 @@
-{
-  "name": "FlaskBackend",
-  "scripts": {
-    "start": "flask run",
-    "test": "pytest"
-  }
-}
