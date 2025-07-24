@@ -1,0 +1,45 @@
+# craft_service_app.py
+
+from flask import Flask, request, jsonify
+from craft_detection import detect_text
+from preprocessing import preprocess_image
+import os
+import cv2
+
+app = Flask(__name__)
+
+# Use a project‐relative tmp folder so it works on Windows, Linux, etc.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TMP_DIR  = os.path.join(BASE_DIR, 'tmp')
+os.makedirs(TMP_DIR, exist_ok=True)
+
+@app.route('/detect', methods=['POST','GET'])
+def detect():
+    img_file = request.files.get('image')
+    if not img_file:
+        return jsonify({'error': 'No image provided 111'}), 400
+
+    # 1. Save raw upload
+    filename = img_file.filename
+    raw_path = os.path.join(TMP_DIR, filename)
+    img_file.save(raw_path)
+    print(f"[CRAFT] Saved raw image to: {raw_path}  Exists? {os.path.exists(raw_path)}")
+
+    # 2. Preprocess
+    pre_img = preprocess_image(raw_path)                          # returns cv2 image
+    preproc_path = os.path.join(TMP_DIR, f"pre_{filename}")
+    success = cv2.imwrite(preproc_path, pre_img)
+    print(f"[CRAFT] Saved preprocessed to: {preproc_path}  Success? {success}")
+
+    # 3. Detect boxes (no polygons)
+    _, boxes = detect_text(
+        preproc_path,
+        output_dir=TMP_DIR,    # now points at your project tmp folder
+        cuda=False,
+        poly=False
+    )
+    print(f"[CRAFT] Returning {len(boxes)} boxes")
+    return jsonify(boxes)
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=6000)
