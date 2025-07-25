@@ -12,8 +12,8 @@ import json
 import pytesseract
 
 # Define paths
-json_path = "result/coords_pre_Screenshot 2025-07-18 232616.json"  # CRAFT coordinates JSON
-image_path = "result/res_pre_Screenshot 2025-07-18 232616.png"     # Input image
+json_path = "result/coords_pre_113320.json"  # CRAFT coordinates JSON
+image_path = "result/res_pre_113320.jpeg"     # Input image
 output_folder = "output_folder"
 audio_output_dir = "audio_output"
 
@@ -138,9 +138,8 @@ for idx, polygon in enumerate(polygons):
                 time.sleep(0.5)
                 pygame.mixer.init()
                 pygame.mixer.music.load(audio_file)
-                pygame.mixer.music.play()
                 while pygame.mixer.music.get_busy():
-                    pygame.time.wait(100)
+                    pygame.time.wait(10)
                 pygame.mixer.music.unload()
             except Exception as e:
                 audio_file = f"TTS failed: {e}"
