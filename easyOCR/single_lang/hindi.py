@@ -1,4 +1,3 @@
-import easyocr
 from PIL import Image
 from googletrans import Translator
 import cv2
@@ -21,12 +20,6 @@ audio_output_dir = "audio_output"
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(audio_output_dir, exist_ok=True)
 
-# Initialize OCR readers
-reader_ko_en = easyocr.Reader(['ko', 'en'], gpu=True)
-reader_hi_en = easyocr.Reader(['hi', 'en'], gpu=True)
-reader_ru_en = easyocr.Reader(['ru', 'en'], gpu=True)
-reader_multi = easyocr.Reader(['es', 'fr', 'de', 'it', 'tr'], gpu=True)
-
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
 
@@ -35,8 +28,7 @@ translator = Translator()
 
 # Language code mapping for gTTS
 lang_codes = {
-    'ko': 'ko', 'hi': 'hi', 'ru': 'ru', 'es': 'es', 'fr': 'fr',
-    'de': 'de', 'it': 'it', 'tr': 'tr', 'en': 'en'
+    'hi': 'hi', 'en': 'en'  # Hindi and English as fallback
 }
 
 # Load the image
@@ -69,40 +61,37 @@ def get_bounding_rect(polygon):
     ys = [point[1] for point in coords]
     return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
 
-# Function to run OCR with all readers and get the best result
-def run_ocr_all(image_np, box_id):
+# Function to run OCR with Tesseract
+def run_ocr_hindi(image_np, box_id):
     # Enhance image
-    scale_factor = 2
+    scale_factor = 3  # Increased for small text
     resized = cv2.resize(image_np, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
     gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     sharpened = cv2.filter2D(gray, -1, kernel)
     enhanced = cv2.equalizeHist(sharpened)
-    thresh = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    _, thresh_otsu = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Try EasyOCR with multiple versions
-    images_to_process = [resized, thresh, enhanced]
-    results = []
-    for img in images_to_process:
-        results.extend(reader_ko_en.readtext(img))
-        results.extend(reader_hi_en.readtext(img))
-        results.extend(reader_ru_en.readtext(img))
-        results.extend(reader_multi.readtext(img))
+    # Try Tesseract OCR with Hindi
+    try:
+        text = pytesseract.image_to_string(thresh_otsu, lang='hin', config='--psm 6 --oem 3')
+        text = text.strip()
+        if text:
+            return (None, text, 0.7)  # Placeholder confidence
+    except Exception as e:
+        print(f"Tesseract error for region {box_id}: {e}")
 
-    # Fallback to Tesseract if no results
-    if not results:
-        text = pytesseract.image_to_string(resized, lang='hin+eng+kor+rus+spa+fra+deu+ita+tur', config='--psm 6')
-        if text.strip():
-            results.append((None, text.strip(), 0.5))  # Placeholder confidence
+    # Fallback to English if Hindi fails
+    try:
+        text = pytesseract.image_to_string(thresh_otsu, lang='eng', config='--psm 6 --oem 3')
+        text = text.strip()
+        if text:
+            return (None, text, 0.7)
+    except Exception as e:
+        print(f"Tesseract error (English fallback) for region {box_id}: {e}")
 
     # Save image if no text detected
-    if not results:
-        cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
-
-    # Return the best result
-    if results:
-        best_result = max(results, key=lambda x: x[2] if len(x) == 3 else -1)
-        return best_result
+    cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
     return None
 
 # Function to detect language
@@ -123,7 +112,7 @@ for idx, polygon in enumerate(polygons):
         cropped_image_np = np.array(cropped_image)
 
         # Run OCR
-        best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
+        best_result = run_ocr_hindi(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
@@ -186,7 +175,7 @@ for idx, polygon in enumerate(polygons):
         })
 
 # Save results to JSON
-output_json_path = os.path.join(output_folder, "results.json")
+output_json_path = os.path.join(output_folder, "results_hindi.json")
 with open(output_json_path, 'w', encoding='utf-8') as f:
     json.dump({"image": image_path, "texts": output_results}, f, ensure_ascii=False, indent=4)
 

@@ -10,6 +10,8 @@ from langdetect import detect
 import numpy as np
 import json
 import pytesseract
+import pandas as pd
+from io import StringIO
 
 # Define paths
 json_path = "result/coords_pre_113320.json"  # CRAFT coordinates JSON
@@ -69,7 +71,8 @@ def get_bounding_rect(polygon):
     ys = [point[1] for point in coords]
     return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
 
-# Function to run OCR with all readers and get the best result
+# Function to run OCR with EasyOCR and Tesseract and select the best result
+# Function to run OCR with EasyOCR and Tesseract and select the best result
 def run_ocr_all(image_np, box_id):
     # Enhance image
     scale_factor = 2
@@ -80,30 +83,46 @@ def run_ocr_all(image_np, box_id):
     enhanced = cv2.equalizeHist(sharpened)
     thresh = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-    # Try EasyOCR with multiple versions
+    # Run EasyOCR with multiple versions
     images_to_process = [resized, thresh, enhanced]
-    results = []
+    easyocr_results = []
     for img in images_to_process:
-        results.extend(reader_ko_en.readtext(img))
-        results.extend(reader_hi_en.readtext(img))
-        results.extend(reader_ru_en.readtext(img))
-        results.extend(reader_multi.readtext(img))
+        easyocr_results.extend(reader_ko_en.readtext(img))
+        easyocr_results.extend(reader_hi_en.readtext(img))
+        easyocr_results.extend(reader_ru_en.readtext(img))
+        easyocr_results.extend(reader_multi.readtext(img))
 
-    # Fallback to Tesseract if no results
-    if not results:
-        text = pytesseract.image_to_string(resized, lang='hin+eng+kor+rus+spa+fra+deu+ita+tur', config='--psm 6')
-        if text.strip():
-            results.append((None, text.strip(), 0.5))  # Placeholder confidence
+    # Run Tesseract
+    tesseract_result = None
+    try:
+        tesseract_output = pytesseract.image_to_data(
+            resized,
+            lang='hin+eng+kor+rus+spa+fra+deu+ita+tur',
+            config='--psm 6',
+            output_type=pytesseract.Output.STRING
+        )
+        tesseract_df = pd.read_csv(StringIO(tesseract_output), sep='\t', on_bad_lines='skip')
+        tesseract_df = tesseract_df[tesseract_df['text'].notna() & (tesseract_df['text'].str.strip() != '')]
+        if not tesseract_df.empty:
+            tesseract_text = ' '.join(tesseract_df['text'].astype(str).tolist())
+            tesseract_conf = tesseract_df['conf'].mean() / 100.0  # Average confidence, scaled to [0,1]
+            tesseract_result = (None, tesseract_text, tesseract_conf)
+    except Exception as e:
+        print(f"Tesseract parsing error for region {box_id}: {e}")
+
+    # Collect all valid results
+    all_results = [res for res in easyocr_results if len(res) == 3]  # Ensure EasyOCR results have confidence
+    if tesseract_result:
+        all_results.append(tesseract_result)
 
     # Save image if no text detected
-    if not results:
+    if not all_results:
         cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
+        return None
 
-    # Return the best result
-    if results:
-        best_result = max(results, key=lambda x: x[2] if len(x) == 3 else -1)
-        return best_result
-    return None
+    # Select the result with the highest confidence
+    best_result = max(all_results, key=lambda x: x[2])
+    return best_result
 
 # Function to detect language
 def detect_language(text):
@@ -124,7 +143,7 @@ for idx, polygon in enumerate(polygons):
 
         # Run OCR
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
-        if best_result and len(best_result) == 3:
+        if best_result:
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 

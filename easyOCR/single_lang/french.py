@@ -21,11 +21,8 @@ audio_output_dir = "audio_output"
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(audio_output_dir, exist_ok=True)
 
-# Initialize OCR readers
-reader_ko_en = easyocr.Reader(['ko', 'en'], gpu=True)
-reader_hi_en = easyocr.Reader(['hi', 'en'], gpu=True)
-reader_ru_en = easyocr.Reader(['ru', 'en'], gpu=True)
-reader_multi = easyocr.Reader(['es', 'fr', 'de', 'it', 'tr'], gpu=True)
+# Initialize OCR reader for Korean and English
+reader = easyocr.Reader(['fr', 'en'], gpu=True)
 
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
@@ -69,7 +66,7 @@ def get_bounding_rect(polygon):
     ys = [point[1] for point in coords]
     return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
 
-# Function to run OCR with all readers and get the best result
+# Function to run OCR with the reader and Tesseract fallback
 def run_ocr_all(image_np, box_id):
     # Enhance image
     scale_factor = 2
@@ -84,14 +81,11 @@ def run_ocr_all(image_np, box_id):
     images_to_process = [resized, thresh, enhanced]
     results = []
     for img in images_to_process:
-        results.extend(reader_ko_en.readtext(img))
-        results.extend(reader_hi_en.readtext(img))
-        results.extend(reader_ru_en.readtext(img))
-        results.extend(reader_multi.readtext(img))
+        results.extend(reader.readtext(img))
 
     # Fallback to Tesseract if no results
     if not results:
-        text = pytesseract.image_to_string(resized, lang='hin+eng+kor+rus+spa+fra+deu+ita+tur', config='--psm 6')
+        text = pytesseract.image_to_string(resized, lang='fra+eng', config='--psm 6')
         if text.strip():
             results.append((None, text.strip(), 0.5))  # Placeholder confidence
 
@@ -186,7 +180,7 @@ for idx, polygon in enumerate(polygons):
         })
 
 # Save results to JSON
-output_json_path = os.path.join(output_folder, "results.json")
+output_json_path = os.path.join(output_folder, "results_french.json")
 with open(output_json_path, 'w', encoding='utf-8') as f:
     json.dump({"image": image_path, "texts": output_results}, f, ensure_ascii=False, indent=4)
 
