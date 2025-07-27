@@ -73,8 +73,7 @@ def run_ocr_hindi(image_np, box_id):
     _, thresh_otsu = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # Debug: Save the cropped region for inspection
-    cv2.imwrite(os.path.join(output_folder, f"region_{box_id}.png"), image_np)
-
+    
     # Try Tesseract OCR with single-word mode
     try:
         # First attempt with Hindi, single word
