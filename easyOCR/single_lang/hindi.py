@@ -11,8 +11,8 @@ import json
 import pytesseract
 
 # Define paths
-json_path = "result/coords_pre_113320.json"  # CRAFT coordinates JSON
-image_path = "result/res_pre_113320.jpeg"     # Input image
+json_path = "../result/coords_pre_feb-th-punjab-india-signage-board-hindi-vipassana-meditation-center-requesting-meditators-to-refrain-using-any-364102479.json"  # CRAFT coordinates JSON
+image_path = "../result/res_pre_feb-th-punjab-india-signage-board-hindi-vipassana-meditation-center-requesting-meditators-to-refrain-using-any-364102479.jpg"     # Input image
 output_folder = "output_folder"
 audio_output_dir = "audio_output"
 
@@ -61,7 +61,7 @@ def get_bounding_rect(polygon):
     ys = [point[1] for point in coords]
     return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
 
-# Function to run OCR with Tesseract
+# Function to run OCR with Tesseract optimized for single word
 def run_ocr_hindi(image_np, box_id):
     # Enhance image
     scale_factor = 3  # Increased for small text
@@ -72,21 +72,32 @@ def run_ocr_hindi(image_np, box_id):
     enhanced = cv2.equalizeHist(sharpened)
     _, thresh_otsu = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Try Tesseract OCR with Hindi
+    # Debug: Save the cropped region for inspection
+    cv2.imwrite(os.path.join(output_folder, f"region_{box_id}.png"), image_np)
+
+    # Try Tesseract OCR with single-word mode
     try:
-        text = pytesseract.image_to_string(thresh_otsu, lang='hin', config='--psm 6 --oem 3')
+        # First attempt with Hindi, single word
+        text = pytesseract.image_to_string(thresh_otsu, lang='hin', config='--psm 8 --oem 3')
         text = text.strip()
         if text:
-            return (None, text, 0.7)  # Placeholder confidence
+            # Use detailed output to get confidence
+            tesseract_data = pytesseract.image_to_data(thresh_otsu, lang='hin', config='--psm 8 --oem 3', output_type=pytesseract.Output.DICT)
+            conf = [tesseract_data['conf'][i] / 100.0 for i in range(len(tesseract_data['conf'])) if tesseract_data['conf'][i] > 0 and tesseract_data['text'][i].strip() == text]
+            confidence = sum(conf) / len(conf) if conf else 0.7  # Average confidence or default
+            return (None, text, confidence)
     except Exception as e:
-        print(f"Tesseract error for region {box_id}: {e}")
+        print(f"Tesseract error (Hindi) for region {box_id}: {e}")
 
     # Fallback to English if Hindi fails
     try:
-        text = pytesseract.image_to_string(thresh_otsu, lang='eng', config='--psm 6 --oem 3')
+        text = pytesseract.image_to_string(thresh_otsu, lang='eng', config='--psm 8 --oem 3')
         text = text.strip()
         if text:
-            return (None, text, 0.7)
+            tesseract_data = pytesseract.image_to_data(thresh_otsu, lang='eng', config='--psm 8 --oem 3', output_type=pytesseract.Output.DICT)
+            conf = [tesseract_data['conf'][i] / 100.0 for i in range(len(tesseract_data['conf'])) if tesseract_data['conf'][i] > 0 and tesseract_data['text'][i].strip() == text]
+            confidence = sum(conf) / len(conf) if conf else 0.7
+            return (None, text, confidence)
     except Exception as e:
         print(f"Tesseract error (English fallback) for region {box_id}: {e}")
 
