@@ -1,25 +1,19 @@
 import easyocr
 from PIL import Image
-from googletrans import Translator
 import cv2
 import os
-from gtts import gTTS
-import pygame
-import time
-from langdetect import detect
 import numpy as np
 import json
 import pytesseract
+from langdetect import detect
 
 # Define paths
-json_path = "result/coords_9e5e8ee8439d4b2fa9fe704b1e3dd4d7.json"  # CRAFT coordinates JSON
-image_path = "result/res_9e5e8ee8439d4b2fa9fe704b1e3dd4d7.jpg"     # Input image
+json_path = "result/coords_7d81721481ec43c08d2fe02ad90fdfab.json"  # CRAFT coordinates JSON
+image_path = "result/res_7d81721481ec43c08d2fe02ad90fdfab.jpg"     # Input image
 output_folder = "output_folder"
-
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
-
 
 # Initialize OCR readers
 reader_ko_en = easyocr.Reader(['ko', 'en'], gpu=True)
@@ -30,13 +24,10 @@ reader_multi = easyocr.Reader(['es', 'fr', 'de', 'it', 'tr'], gpu=True)
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
 
-# Initialize translator
-translator = Translator()
-
-# Language code mapping for gTTS
-lang_codes = {
-    'ko': 'ko', 'hi': 'hi', 'ru': 'ru', 'es': 'es', 'fr': 'fr',
-    'de': 'de', 'it': 'it', 'tr': 'tr', 'en': 'en'
+# Language code to full name mapping
+lang_names = {
+    'ko': 'Korean', 'hi': 'Hindi', 'ru': 'Russian', 'es': 'Spanish', 'fr': 'French',
+    'de': 'German', 'it': 'Italian', 'tr': 'Turkish', 'en': 'English'
 }
 
 # Load the image
@@ -108,9 +99,10 @@ def run_ocr_all(image_np, box_id):
 # Function to detect language
 def detect_language(text):
     try:
-        return detect(text)
+        lang_code = detect(text)
+        return lang_names.get(lang_code, 'English')  # Default to English if not in mapping
     except:
-        return 'en'  # Fallback to English
+        return 'English'  # Fallback to English
 
 # Process each text region
 output_results = []
@@ -126,50 +118,38 @@ for idx, polygon in enumerate(polygons):
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
-            print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
-
-            # Detect language and generate TTS
-            
-
-            # Translate to English
-            try:
-                translated_text = translator.translate(text, dest='en').text
-            except Exception as e:
-                translated_text = f"Translation failed: {e}"
+            detected_lang = detect_language(text)
+            print(f"Region {idx} - Detected Text: {text} (Language: {detected_lang}, Confidence: {prob:.2f})")
 
             # Store result
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
-                "translated_text": translated_text,
+                "detected_language": detected_lang,
                 "confidence": prob,
-                
             })
         else:
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
-                "translated_text": "N/A",
+                "detected_language": "N/A",
                 "confidence": 0.0,
-                
             })
     except KeyError as e:
         print(f"Error processing region {idx}: Missing coordinates - {e}")
         output_results.append({
             "coordinates": [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
+            "detected_language": "N/A",
             "confidence": 0.0,
-            
         })
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
         output_results.append({
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
+            "detected_language": "N/A",
             "confidence": 0.0,
-            
         })
 
 # Save results to JSON
