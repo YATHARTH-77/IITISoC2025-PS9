@@ -1,7 +1,7 @@
 import requests
 import json
 
-GROQ_API_KEY = "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"  # 🔒 Replace this
+GROQ_API_KEY = "#API KEY"  # 🔒 Replace this
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 
 def correct_text_with_groq(text, lang_name="English"):
