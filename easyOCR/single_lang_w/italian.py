@@ -1,10 +1,7 @@
 import easyocr
 from PIL import Image
-from googletrans import Translator
 import cv2
 import os
-from gtts import gTTS
-from langdetect import detect
 import numpy as np
 import json
 import pytesseract
@@ -18,9 +15,9 @@ print("Running final updated italian.py - Version 2025-07-31 06:15 PM IST")  # U
 json_path = "../result/coords_b5c9010e9ecb4e818a50a6980ff64e3f.json"  # CRAFT coordinates JSON
 image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input image
 output_folder = "output_folder"
-model_path = "../FineTune/Italian/best_italian_ocr_model.pth"  # Path to your fine-tuned weights
-character_list_path = "../FineTune/Italian/training_data/character_list.txt"  # Path to character list
-weights_path = "../FineTune/Italian/best_italian_ocr_model.pth"
+model_path = "../../Weights/Italian/best_italian_ocr_model.pth"  # Path to your fine-tuned weights
+character_list_path = "../../Weights/Italian/training_data/character_list.txt"  # Path to character list
+weights_path = "../../Weights/Italian/best_italian_ocr_model.pth"
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
@@ -33,16 +30,6 @@ print("EasyOCR reader initialized for languages: it, en")
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
 print("Tesseract path set")
-
-# Initialize translator
-translator = Translator()
-print("Translator initialized")
-
-# Language code mapping for gTTS
-lang_codes = {
-    'ko': 'ko', 'hi': 'hi', 'ru': 'ru', 'es': 'es', 'fr': 'fr',
-    'de': 'de', 'it': 'it', 'tr': 'tr', 'en': 'en'
-}
 
 # Define the fine-tuned model
 class SimpleCRNN(nn.Module):
@@ -246,24 +233,6 @@ def run_ocr_all(image_np, box_id):
     print(f"Saved no_text_detected_{box_id}.png")
     return None
 
-# Function to detect language
-def detect_language(text):
-    try:
-        return detect(text)
-    except:
-        return 'it'  # Fallback to Italian for this script
-
-# Function to generate speech
-def generate_speech(text, lang_code, filename):
-    try:
-        if lang_code in lang_codes:
-            tts = gTTS(text=text, lang=lang_codes[lang_code], slow=False)
-            tts.save(filename)
-            return True
-    except Exception as e:
-        print(f"Speech generation failed: {e}")
-    return False
-
 # Process each text region
 output_results = []
 image_base = os.path.basename(image_path).split('.')[0]
@@ -283,39 +252,17 @@ for idx, polygon in enumerate(polygons):
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 
-            # Detect language
-            detected_lang = detect_language(text)
-            
-            # Translate to English
-            try:
-                translated_text = translator.translate(text, dest='en').text
-                print(f"Translated text for region {idx}: {translated_text}")
-            except Exception as e:
-                translated_text = f"Translation failed: {e}"
-                print(f"Translation error for region {idx}: {e}")
-
             # Store result
-            result_data = {
+            output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
-                "translated_text": translated_text,
                 "confidence": prob,
-                "detected_language": detected_lang
-            }
-            
-            # Generate speech file
-            speech_filename = os.path.join(output_folder, f"speech_{image_base}_{idx}.mp3")
-            if generate_speech(text, detected_lang, speech_filename):
-                result_data["speech_file"] = speech_filename
-            
-            output_results.append(result_data)
+            })
         else:
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
-                "translated_text": "N/A",
                 "confidence": 0.0,
-                "detected_language": "unknown"
             })
             print(f"Region {idx} - No text detected")
     except KeyError as e:
@@ -323,18 +270,14 @@ for idx, polygon in enumerate(polygons):
         output_results.append({
             "coordinates": [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
-            "detected_language": "unknown"
         })
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
         output_results.append({
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
-            "detected_language": "unknown"
         })
 
 # Save results to JSON
