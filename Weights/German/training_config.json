@@ -1,0 +1,10 @@
+{
+  "character_list_path": "training_data/character_list.txt",
+  "train_lmdb_path": "training_data/lmdb/train",
+  "val_lmdb_path": "training_data/lmdb/val",
+  "batch_size": 16,
+  "learning_rate": 0.001,
+  "num_epochs": 50,
+  "max_image_width": 200,
+  "image_height": 32
+}
