@@ -13,9 +13,9 @@ from torchvision import transforms
 json_path = "../result/coords_b5c9010e9ecb4e818a50a6980ff64e3f.json"  # CRAFT coordinates JSON
 image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input image
 output_folder = "output_folder"
-model_path = "../Weights/English/best_english_ocr_model.pth"    # Path to your fine-tuned weights
-character_list_path = "../Weights/English/training_data/character_list.txt"  # Path to character list used during training
-weights_path = "../Weights/English/best_english_ocr_model.pth"
+model_path = "../../Weights/English/best_english_ocr_model.pth"    # Path to your fine-tuned weights
+character_list_path = "../../Weights/English/training_data/character_list.txt"  # Path to character list used during training
+weights_path = "../../Weights/English/best_english_ocr_model.pth"
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
