@@ -17,7 +17,7 @@ image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input ima
 output_folder = "output_folder"
 model_path = "../../Weights/spanish/best_spanish_ocr_model.pth"    # Path to your fine-tuned weights
 character_list_path = "../../Weights/spanish/training_data/character_list.txt"  # Path to character list used during training
-weights_path = "../FineTune/spanish/best_spanish_ocr_model.pth"
+weights_path = "../../Weights/spanish/best_spanish_ocr_model.pth"
 # Create output directories if they don't exist
 os.makedirs(output_folder, exist_ok=True)
 
