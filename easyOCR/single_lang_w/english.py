@@ -1,6 +1,5 @@
 import easyocr
 from PIL import Image
-from googletrans import Translator
 import cv2
 import os
 import numpy as np
@@ -26,9 +25,6 @@ reader = easyocr.Reader(['en'], gpu=True)
 
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
-
-# Initialize translator
-translator = Translator()
 
 # Define the fine-tuned model
 class SimpleCRNN(nn.Module):
@@ -210,26 +206,18 @@ for idx, polygon in enumerate(polygons):
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
-            print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
-
-            # Translate to English
-            try:
-                translated_text = translator.translate(text, dest='en').text
-            except Exception as e:
-                translated_text = f"Translation failed: {e}"
+            print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f}")
 
             # Store result
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
-                "translated_text": translated_text,
                 "confidence": prob,
             })
         else:
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
-                "translated_text": "N/A",
                 "confidence": 0.0,
             })
     except KeyError as e:
@@ -237,7 +225,6 @@ for idx, polygon in enumerate(polygons):
         output_results.append({
             "coordinates": [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
         })
     except Exception as e:
@@ -245,7 +232,6 @@ for idx, polygon in enumerate(polygons):
         output_results.append({
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
         })
 
