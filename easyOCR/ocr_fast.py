@@ -1,11 +1,15 @@
 import easyocr
-from PIL import Image
+from PIL import Image, ImageFile
 import cv2
 import os
 import numpy as np
 import json
 import pytesseract
 from langdetect import detect
+from concurrent.futures import ThreadPoolExecutor
+
+# Enable loading of truncated images
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Define paths
 json_path = "result/coords_7d81721481ec43c08d2fe02ad90fdfab.json"  # CRAFT coordinates JSON
@@ -30,10 +34,15 @@ lang_names = {
     'de': 'German', 'it': 'Italian', 'tr': 'Turkish', 'en': 'English'
 }
 
-# Load the image
+# Load the image to get dimensions
 if not os.path.exists(image_path):
     raise FileNotFoundError(f"Image not found: {image_path}")
-image = Image.open(image_path)
+try:
+    with Image.open(image_path) as image:
+        image_width, image_height = image.size
+    print(f"Image dimensions: {image_width}x{image_height}")
+except Exception as e:
+    raise Exception(f"Failed to load image {image_path} for dimension check: {e}")
 
 # Load coordinates from the JSON file and debug structure
 with open(json_path, 'r', encoding='utf-8') as f:
@@ -58,7 +67,15 @@ def get_bounding_rect(polygon):
     coords = get_coordinates(polygon)
     xs = [point[0] for point in coords]
     ys = [point[1] for point in coords]
-    return [min(xs), min(ys), max(xs), max(ys)]  # [x_min, y_min, x_max, y_max]
+    x_min, y_min, x_max, y_max = min(xs), min(ys), max(xs), max(ys)
+    # Validate coordinates
+    x_min = max(0, x_min)
+    y_min = max(0, y_min)
+    x_max = min(image_width, x_max)
+    y_max = min(image_height, y_max)
+    if x_max <= x_min or y_max <= y_min:
+        raise ValueError(f"Invalid bounding box: x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")
+    return [x_min, y_min, x_max, y_max]
 
 # Function to run OCR with all readers and get the best result
 def run_ocr_all(image_np, box_id):
@@ -104,17 +121,46 @@ def detect_language(text):
     except:
         return 'English'  # Fallback to English
 
-# Process each text region
-output_results = []
-image_base = os.path.basename(image_path).split('.')[0]
-for idx, polygon in enumerate(polygons):
+# Function to process a single region
+def process_region(args):
+    polygon, idx = args
     try:
-        # Extract coordinates and crop image
+        # Extract coordinates
         x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
-        cropped_image = image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
-        cropped_image_np = np.array(cropped_image)
+        print(f"Region {idx} - Coordinates: x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")
+
+        # Reload image for this region to avoid threading issues
+        try:
+            with Image.open(image_path) as region_image:
+                if region_image is None:
+                    raise ValueError("Image.open returned None")
+                # Crop the image
+                cropped_image = region_image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
+                if cropped_image is None:
+                    raise ValueError("Cropping returned None")
+                print(f"Region {idx} - Cropped image mode: {cropped_image.mode}, size: {cropped_image.size}")
+        except Exception as e:
+            print(f"Error cropping region {idx}: {e}")
+            return {
+                "coordinates": get_coordinates(polygon),
+                "detected_text": f"Error cropping image: {e}",
+                "detected_language": "N/A",
+                "confidence": 0.0,
+            }
+
+        try:
+            cropped_image_np = np.array(cropped_image)
+        except Exception as e:
+            print(f"Error converting cropped image to NumPy array for region {idx}: {e}")
+            return {
+                "coordinates": get_coordinates(polygon),
+                "detected_text": f"Error converting image to NumPy: {e}",
+                "detected_language": "N/A",
+                "confidence": 0.0,
+            }
 
         # Run OCR
+        image_base = os.path.basename(image_path).split('.')[0]
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
@@ -122,35 +168,40 @@ for idx, polygon in enumerate(polygons):
             print(f"Region {idx} - Detected Text: {text} (Language: {detected_lang}, Confidence: {prob:.2f})")
 
             # Store result
-            output_results.append({
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
                 "detected_language": detected_lang,
                 "confidence": prob,
-            })
+            }
         else:
-            output_results.append({
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
                 "detected_language": "N/A",
                 "confidence": 0.0,
-            })
+            }
     except KeyError as e:
         print(f"Error processing region {idx}: Missing coordinates - {e}")
-        output_results.append({
+        return {
             "coordinates": [],
             "detected_text": f"Error: {e}",
             "detected_language": "N/A",
             "confidence": 0.0,
-        })
+        }
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
-        output_results.append({
+        return {
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
             "detected_language": "N/A",
             "confidence": 0.0,
-        })
+        }
+
+# Process text regions in parallel
+output_results = []
+with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers based on your system
+    output_results = list(executor.map(process_region, zip(polygons, range(len(polygons)))))
 
 # Save results to JSON
 output_json_path = os.path.join(output_folder, "results.json")

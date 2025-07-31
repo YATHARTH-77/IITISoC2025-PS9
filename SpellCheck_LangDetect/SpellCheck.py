@@ -1,15 +1,52 @@
 import sys
 import os
 import warnings
+from contextlib import redirect_stdout
+import difflib
+import json
+import os
+
+# Path to your JSON file
+file_path = "otherDirectory/x.py"  # Make sure this path points to your JSON content file (even if named .py)
+
+# If the JSON content is embedded inside a Python file (not pure .json), extract it
+def extract_json_from_py(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        content = file.read()
+    
+    # Try to extract the list structure (starting with [ and ending with ])
+    start = content.find('[')
+    end = content.rfind(']') + 1
+    json_str = content[start:end]
+
+    try:
+        data = json.loads(json_str)
+        return data
+    except json.JSONDecodeError as e:
+        print("❌ Error decoding JSON:", e)
+        return []
+
+# Extract and join text
+def combine_text(data):
+    words = [entry["text"] for entry in data if "text" in entry]
+    return " ".join(words)
+
+data = extract_json_from_py(file_path)
+if data:
+    result = combine_text(data)
+    print("✅ Combined Text:", result)
+else:
+    print("❌ Failed to load JSON or find text.")
 
 # Suppress FutureWarnings (in case there are any real ones)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# ✅ Suppress FastText printed warnings (redirect stdout temporarily)
-from contextlib import redirect_stdout
-with open(os.devnull, "w") as f, redirect_stdout(f):
+with open(os.devnull, "w") as fnull, redirect_stdout(fnull):
     import fasttext
     model = fasttext.load_model("lid.176.bin")
+
+# ✅ Suppress FastText printed warnings (redirect stdout temporarily)
+
 from langdetect import detect
 import language_tool_python
 #Cleaning The Hindi & Korean Words Text... Running This Only 1 Time Then Commenting Out
@@ -45,7 +82,6 @@ clean_wordlist("ko.txt", "ko_words_cleaned.txt", "ko") '''
 def load_wordlist(filepath):
     with open(filepath, encoding='utf-8') as f:
         return set(word.strip() for word in f.readlines())
-import difflib
 
 def correct_word_custom(word, wordlist):
     matches = difflib.get_close_matches(word, wordlist, n=1, cutoff=0.8)
@@ -57,7 +93,8 @@ def correct_word_custom(word, wordlist):
 def correct_text_custom(text, wordlist):
     return ' '.join(correct_word_custom(w, wordlist) for w in text.split())
 
-def correct_text_offline(text):
+
+def correct_text_offline(text, language_code):
     try:
         if language_code=="en":
             tool = language_tool_python.LanguageTool('en-US')  # critical: don't use just 'en'
@@ -82,40 +119,44 @@ def correct_text_offline(text):
             corrected = language_tool_python.utils.correct(text, matches)
             return corrected
         elif language_code=="ar":
-            tool = language_tool_python.LanguageTool('ar')  # critical: don't use just 'en'
+            tool = language_tool_python.LanguageTool('ar')
+
             matches = tool.check(text)
 
-            if not matches:
-                print("✅ No errors found.")
+            # Display matches
+            if matches:
+                print(f"🔍 Found {len(matches)} issue(s):")
             else:
-                print(f"🔍 {len(matches)} issues found.")
+                print("✅ No issues found.")
 
+            # Correct the sentence
             corrected = language_tool_python.utils.correct(text, matches)
-            return corrected
+            return corrected 
         elif language_code=="ru":
-            tool = language_tool_python.LanguageTool('ru')
+            tool = language_tool_python.LanguageTool('ru')  # 'ru' = Russian
             matches = tool.check(text)
-            if not matches:
-                print("✅ No errors found.")
+            
+            if matches:
+                corrected = language_tool_python.utils.correct(text, matches)
+                print("✅ Corrected:", corrected)
+                print("🔍 Issues found:", len(matches))
+                return corrected
             else:
-                print(f"🔍 {len(matches)} issues found.")
-            corrected = language_tool_python.utils.correct(text, matches)
-            return corrected
+                print("✅ No errors found.")
+                return text
         elif language_code == "hi":
             wordlist = load_wordlist("hi_words_cleaned.txt")
             return correct_text_custom(text, wordlist)
+
         elif language_code == "ko":
             wordlist = load_wordlist("ko_words_cleaned.txt")
             return correct_text_custom(text, wordlist)
-
-
     except Exception as e:
-        print(f"❌ Error: {e}")
-        return text 
+            print(f"❌ Error: {e}")
+            return text 
 
 # Example
-raw_text = "मुझे हिन्दी सिखना हे।"
-
+raw_text = "이것은 한국어 문장입니당 잘못됬죠?"
 # Predict language
 predictions = model.predict(raw_text)
 
@@ -135,7 +176,9 @@ elif language_code=="ru":
     print("Detected Language From The Given Text is Russian")
 elif language_code=="ko":
     print("Detected Language From The Given Text is Korean")
-Correct_Text=correct_text_offline(raw_text)
+else:
+    print("Detected Language From The Given Text is Arabic")
+Correct_Text=correct_text_offline(raw_text, language_code)
 print(f"Confidence: {confidence:.4f}")
 print(Correct_Text)
 print("OVER")

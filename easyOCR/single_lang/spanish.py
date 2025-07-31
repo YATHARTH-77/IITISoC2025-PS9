@@ -15,11 +15,11 @@ import pytesseract
 json_path = "result/coords_pre_113320.json"  # CRAFT coordinates JSON
 image_path = "result/res_pre_113320.jpeg"     # Input image
 output_folder = "output_folder"
-audio_output_dir = "audio_output"
+
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
-os.makedirs(audio_output_dir, exist_ok=True)
+
 
 # Initialize OCR reader for Korean and English
 reader = easyocr.Reader(['es', 'en'], gpu=True)
@@ -122,21 +122,7 @@ for idx, polygon in enumerate(polygons):
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 
-            # Detect language and generate TTS
-            detected_lang = detect_language(text)
-            tts_lang = lang_codes.get(detected_lang, 'en')
-            audio_file = os.path.join(audio_output_dir, f"audio_{image_base}_{idx}.mp3")
-            try:
-                tts = gTTS(text=text, lang=tts_lang)
-                tts.save(audio_file)
-                time.sleep(0.5)
-                pygame.mixer.init()
-                pygame.mixer.music.load(audio_file)
-                while pygame.mixer.music.get_busy():
-                    pygame.time.wait(10)
-                pygame.mixer.music.unload()
-            except Exception as e:
-                audio_file = f"TTS failed: {e}"
+           
 
             # Translate to English
             try:
@@ -150,7 +136,7 @@ for idx, polygon in enumerate(polygons):
                 "detected_text": text,
                 "translated_text": translated_text,
                 "confidence": prob,
-                "audio_file": audio_file
+                
             })
         else:
             output_results.append({
@@ -158,7 +144,7 @@ for idx, polygon in enumerate(polygons):
                 "detected_text": "No text detected",
                 "translated_text": "N/A",
                 "confidence": 0.0,
-                "audio_file": "N/A"
+                
             })
     except KeyError as e:
         print(f"Error processing region {idx}: Missing coordinates - {e}")
@@ -167,7 +153,7 @@ for idx, polygon in enumerate(polygons):
             "detected_text": f"Error: {e}",
             "translated_text": "N/A",
             "confidence": 0.0,
-            "audio_file": "N/A"
+            
         })
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
@@ -176,7 +162,7 @@ for idx, polygon in enumerate(polygons):
             "detected_text": f"Error: {e}",
             "translated_text": "N/A",
             "confidence": 0.0,
-            "audio_file": "N/A"
+            
         })
 
 # Save results to JSON
