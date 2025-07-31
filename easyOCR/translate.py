@@ -49,18 +49,25 @@ if target_lang not in LANGUAGES:
     print(f"Unsupported language code: {target_lang}. Defaulting to English.")
     target_lang = "en"
 
-# Translate the word with detected source language
-try:
-    translated = translator.translate(word, src=detected_source, dest=target_lang)
-    translated_text = translated.text
-    print(f"Translating '{word}' from {LANGUAGES.get(translated.src, 'auto')} to '{translated_text}' in {LANGUAGES[target_lang]}")
-    # Warn if the detected source differs from googletrans's detection
-    if detected_source and translated.src != detected_source:
-        print(f"Warning: Language detection mismatch - detected {detected_source}, googletrans used {translated.src}")
-except Exception as e:
-    print(f"Translation error: {e}")
-    translated_text = f"Translation failed: {e}"
-    detected_source = "unknown" if not detected_source else detected_source
+# Check if source language is English; if so, skip translation
+if detected_source == "en":
+    print(f"Source language is English; no translation needed for '{word}'.")
+    translated_text = word
+    translated_src = detected_source
+else:
+    # Translate the word with detected source language
+    try:
+        translated = translator.translate(word, src=detected_source, dest=target_lang)
+        translated_text = translated.text
+        translated_src = translated.src
+        print(f"Translating '{word}' from {LANGUAGES.get(translated_src, 'auto')} to '{translated_text}' in {LANGUAGES[target_lang]}")
+        # Warn if the detected source differs from googletrans's detection
+        if detected_source and translated_src != detected_source:
+            print(f"Warning: Language detection mismatch - detected {detected_source}, googletrans used {translated_src}")
+    except Exception as e:
+        print(f"Translation error: {e}")
+        translated_text = f"Translation failed: {e}"
+        translated_src = "unknown" if not detected_source else detected_source
 
 # Save the translated text to a JSON file
 output_data = {
@@ -68,7 +75,8 @@ output_data = {
     "translated_word": translated_text,
     "target_language": target_lang,
     "language_name": LANGUAGES.get(target_lang, "Unknown"),
-    "detected_source_language": detected_source if detected_source else translated.src
+    "detected_source_language": translated_src,
+    "note": "No translation performed (source is English)" if detected_source == "en" else ""
 }
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(output_data, f, ensure_ascii=False, indent=4)
