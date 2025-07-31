@@ -22,9 +22,7 @@
                 ]
             ],
             "detected_text": "Io",
-            "translated_text": "Io",
-            "confidence": 0.5832659523124083,
-            "detected_language": "ro"
+            "confidence": 0.5832659523124083
         },
         {
             "coordinates": [
@@ -46,9 +44,7 @@
                 ]
             ],
             "detected_text": "NOT",
-            "translated_text": "NOT",
-            "confidence": 0.8911015770947261,
-            "detected_language": "vi"
+            "confidence": 0.8911015770947261
         },
         {
             "coordinates": [
@@ -70,9 +66,7 @@
                 ]
             ],
             "detected_text": "TOUCH",
-            "translated_text": "TOUCH",
-            "confidence": 0.8511198223722137,
-            "detected_language": "vi"
+            "confidence": 0.8511198223722137
         },
         {
             "coordinates": [
@@ -94,9 +88,7 @@
                 ]
             ],
             "detected_text": "TOOLS",
-            "translated_text": "TOOLS",
-            "confidence": 0.9992101456703425,
-            "detected_language": "vi"
+            "confidence": 0.9992101456703425
         },
         {
             "coordinates": [
@@ -118,9 +110,7 @@
                 ]
             ],
             "detected_text": "MY",
-            "translated_text": "MY",
-            "confidence": 0.9998652170390312,
-            "detected_language": "sw"
+            "confidence": 0.9998652170390312
         },
         {
             "coordinates": [
@@ -142,10 +132,7 @@
                 ]
             ],
             "detected_text": "DAUGHTER",
-            "translated_text": "DAUGHTER",
-            "confidence": 0.9999212684031765,
-            "detected_language": "de",
-            "speech_file": "output_folder\\speech_res_b5c9010e9ecb4e818a50a6980ff64e3f_5.mp3"
+            "confidence": 0.9999212684031765
         },
         {
             "coordinates": [
@@ -167,9 +154,7 @@
                 ]
             ],
             "detected_text": "MY",
-            "translated_text": "MY",
-            "confidence": 0.9998512248664195,
-            "detected_language": "sw"
+            "confidence": 0.9998512248664195
         }
     ]
 }
