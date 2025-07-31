@@ -22,6 +22,9 @@ from preprocessing import preprocess_image
 import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
+# Groq import for summarization
+from groq import Groq
+
 # Enable loading of truncated images for better stability
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -204,9 +207,49 @@ class TrOCRWithCoordinates:
             result["error"] = error
         return result
 
-# Groq API Configuration for Spell Check
+# Groq API Configuration for Spell Check and Summarization
 GROQ_API_KEY = "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"
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+
+# Summarization Functions (integrated from Summarizer.py)
+def summarize_text(text, model="llama3-70b-8192"):
+    """Summarize the given text using Groq API"""
+    if not text or len(text.strip()) < 50:  # Skip very short texts
+        return "Text too short to summarize."
+    
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        
+        prompt = f"""
+You are a professional summarizer. Read the full input text carefully and thoroughly. Do not start summarizing until you have completely processed the entire content. Your goal is to understand the core message, main arguments, and key insights. Once you have understood everything, generate a well-structured summary in the same language as the input text. The summary should be concise, informative, and accurate, capturing all important points without omitting critical details. Do not translate. Do not include your own opinion. Do not add any preamble, labels, or comments—output the summary only. Your output must be *only the summary* — do not include any title, label, comment, or metadata
+
+Input Text:
+{text}
+"""
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=512
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error in text summarization: {e}")
+        return "Error occurred during summarization."
+
+def save_summary_to_file(summary_text, file_path):
+    """Save summary text to a file"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(summary_text)
+        return True
+    except Exception as e:
+        print(f"Error saving summary to file: {e}")
+        return False
 
 app = Flask(__name__)
 CORS(app)
@@ -297,7 +340,9 @@ def correct_whole_text_with_groq(whole_text, lang_code="en"):
     user_prompt = (
         f"Correct only the spelling errors in this complete {lang_name} text. "
         f"Keep all original words and their positions. Only fix spelling mistakes. "
+        
         f"Do not add explanations or metadata words. "
+        f"❗ Use the context of the previous and following words to determine the correct spelling, choosing the closest valid word in {lang_name} without drastically changing or adding new words.\n"
         f"Return only the corrected complete text:\n\n{whole_text}"
     )
 
@@ -580,6 +625,88 @@ def process_region_fast(args):
         print(f"Error processing box {idx}: {e}")
         return None
 
+# **NEW: Summarization Route**
+@app.route('/summarize', methods=['POST'])
+def summarize_extracted_text():
+    """Generate summary from extracted OCR text and save as summary.txt"""
+    try:
+        print("=== Text summarization requested ===")
+        
+        # Get text from form data
+        text_to_summarize = request.form.get('text', '').strip()
+        if not text_to_summarize:
+            print("Error: No text provided for summarization")
+            return jsonify({'error': 'No text provided for summarization'}), 400
+
+        print(f"Text to summarize ({len(text_to_summarize)} chars): {text_to_summarize[:100]}...")
+        
+        # Check if text is long enough to summarize
+        if len(text_to_summarize) < 50:
+            print("Text too short to summarize")
+            return jsonify({'error': 'Text is too short to generate a meaningful summary'}), 400
+        
+        # Generate summary using Groq
+        print("Generating summary with Groq API...")
+        summary = summarize_text(text_to_summarize)
+        
+        if not summary or summary.startswith("Error"):
+            print("Summarization failed")
+            return jsonify({'error': 'Failed to generate summary'}), 500
+        
+        # Save summary to summary.txt in static directory
+        summary_path = os.path.join(STATIC_DIR, 'summary.txt')
+        if save_summary_to_file(summary, summary_path):
+            print(f"Summary saved to: {summary_path}")
+            print(f"Summary preview: {summary[:100]}...")
+            
+            # Also save summary metadata as JSON
+            summary_data = {
+                'original_text': text_to_summarize,
+                'summary': summary,
+                'original_length': len(text_to_summarize),
+                'summary_length': len(summary),
+                'compression_ratio': round(len(summary) / len(text_to_summarize), 2),
+                'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'model_used': 'llama3-70b-8192'
+            }
+            
+            summary_json_path = os.path.join(STATIC_DIR, 'summary.json')
+            with open(summary_json_path, 'w', encoding='utf-8') as f:
+                json.dump(summary_data, f, ensure_ascii=False, indent=4)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Summary generated successfully',
+                'summary': summary,
+                'original_length': len(text_to_summarize),
+                'summary_length': len(summary),
+                'compression_ratio': round(len(summary) / len(text_to_summarize), 2),
+                'summary_file': 'summary.txt',
+                'summary_url': f'/static/summary.txt?t={int(time.time())}'  # Cache-busting
+            }), 200
+        else:
+            print("Failed to save summary to file")
+            return jsonify({'error': 'Failed to save summary to file'}), 500
+            
+    except Exception as e:
+        print(f"❌ Summarization error: {e}")
+        return jsonify({'error': f'Summarization failed: {str(e)}'}), 500
+
+@app.route('/get_summary')
+def get_summary():
+    """Get the saved summary data"""
+    try:
+        summary_json_path = os.path.join(STATIC_DIR, 'summary.json')
+        if os.path.exists(summary_json_path):
+            with open(summary_json_path, 'r', encoding='utf-8') as f:
+                summary_data = json.load(f)
+            return jsonify(summary_data)
+        else:
+            return jsonify({'error': 'No summary available'}), 404
+    except Exception as e:
+        print(f"Error reading summary: {e}")
+        return jsonify({'error': 'Error reading summary'}), 500
+
 # **UNCHANGED: Keep handwritten result route exactly as it is (NO spell check)**
 @app.route('/handwritten_result', methods=['POST'])
 def handwritten_result():
@@ -714,6 +841,36 @@ def handwritten_result():
                 'results': reordered_output
             }
             
+            # **NEW: Generate automatic summary for handwritten text if substantial**
+            try:
+                combined_text = ' '.join([item['detected_text'] for item in reordered_output if item.get('detected_text', '').strip()])
+                
+                if len(combined_text) >= 100:  # Only summarize if substantial text
+                    print("Generating automatic summary for handwritten text...")
+                    summary = summarize_text(combined_text)
+                    
+                    if summary and not summary.startswith("Error"):
+                        # Save summary
+                        summary_path = os.path.join(STATIC_DIR, 'summary.txt')
+                        save_summary_to_file(summary, summary_path)
+                        
+                        # Add summary info to final JSON
+                        final_data_json['summary_generated'] = True
+                        final_data_json['summary'] = summary
+                        final_data_json['combined_text_length'] = len(combined_text)
+                        final_data_json['summary_length'] = len(summary)
+                        print(f"Automatic summary generated and saved for handwritten text")
+                    else:
+                        final_data_json['summary_generated'] = False
+                        print("Automatic summary generation failed for handwritten text")
+                else:
+                    final_data_json['summary_generated'] = False
+                    print("Handwritten text too short for automatic summarization")
+                    
+            except Exception as e:
+                print(f"Error in automatic summarization for handwritten text: {e}")
+                final_data_json['summary_generated'] = False
+            
             final_json_path = os.path.join(STATIC_DIR, 'final_data.json')
             with open(final_json_path, 'w', encoding='utf-8') as jf:
                 json.dump(final_data_json, jf, ensure_ascii=False, indent=4)
@@ -733,7 +890,7 @@ def handwritten_result():
         print(f"Error in handwritten processing: {e}")
         return jsonify({'error': f'Handwritten processing failed: {str(e)}'}), 500
 
-# **UPDATED: Modified main result route with whole text spell check**
+# **UPDATED: Modified main result route with whole text spell check and automatic summarization**
 @app.route('/result', methods=['POST'])
 def result():
     start_time = time.time()
@@ -860,6 +1017,36 @@ def result():
             'reordered': True,
             'results': reordered_output
         }
+        
+        # **NEW: Generate automatic summary for printed text if substantial**
+        try:
+            combined_text = ' '.join([item['detected_text'] for item in reordered_output if item.get('detected_text', '').strip()])
+            
+            if len(combined_text) >= 100:  # Only summarize if substantial text
+                print("Generating automatic summary for printed text...")
+                summary = summarize_text(combined_text)
+                
+                if summary and not summary.startswith("Error"):
+                    # Save summary
+                    summary_path = os.path.join(STATIC_DIR, 'summary.txt')
+                    save_summary_to_file(summary, summary_path)
+                    
+                    # Add summary info to final JSON
+                    final_data_json['summary_generated'] = True
+                    final_data_json['summary'] = summary
+                    final_data_json['combined_text_length'] = len(combined_text)
+                    final_data_json['summary_length'] = len(summary)
+                    print(f"Automatic summary generated and saved for printed text")
+                else:
+                    final_data_json['summary_generated'] = False
+                    print("Automatic summary generation failed for printed text")
+            else:
+                final_data_json['summary_generated'] = False
+                print("Printed text too short for automatic summarization")
+                
+        except Exception as e:
+            print(f"Error in automatic summarization for printed text: {e}")
+            final_data_json['summary_generated'] = False
         
         # Save reordered results
         final_json_path = os.path.join(STATIC_DIR, 'final_data.json')

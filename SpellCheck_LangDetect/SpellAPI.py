@@ -1,7 +1,7 @@
 import requests
 import json
 
-GROQ_API_KEY = "#API KEY"  # 🔒 Replace this
+GROQ_API_KEY = "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"  
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 
 def correct_text_with_groq(text, lang_name="English"):
@@ -23,9 +23,9 @@ def correct_text_with_groq(text, lang_name="English"):
     # User message should include the actual input text
     user_prompt = (
         f"Correct only the grammar and spelling in the following {lang_name} text.\n\n"
-        f"❗ Do not REMOVE, skip, change the position of, or rewrite any word under any condition STRICTLY.\n"
-        f"❗ Do not translate or simplify the text.\n"
-        f"❗ Return only the corrected version of the text, without explanation or extra comments STRICTLY.\n\n"
+        f" Do not REMOVE, skip, change the position of, or rewrite any word under any condition STRICTLY.\n"
+        f" Do not translate or simplify the text.\n"
+        f" Return only the corrected version of the text, without explanation or extra comments STRICTLY.\n\n"
         f"Text:\n{text}\n\nCorrected:"
     )
 
@@ -45,11 +45,11 @@ def correct_text_with_groq(text, lang_name="English"):
     if response.status_code == 200:
         return response.json()["choices"][0]["message"]["content"].strip()
     else:
-        return f"❌ Error {response.status_code}: {response.text}"
+        return f" Error {response.status_code}: {response.text}"
 
 
 
-# 🧪 Sample usage
+#  Sample usage
 texts = {
     "German": "Ich gehen morgen zur Schule weil ich habe ein prüfung.",
     "Italian": "Lui andare a scuola ogni giorno ma lui non studia bene.",
@@ -59,4 +59,4 @@ texts = {
 
 for lang, txt in texts.items():
     corrected = correct_text_with_groq(txt, lang)
-    print("✅ Corrected:", corrected)
+    print(" Corrected:", corrected)
