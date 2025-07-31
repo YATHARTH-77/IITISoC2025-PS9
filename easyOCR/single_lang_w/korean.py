@@ -1,10 +1,7 @@
 import easyocr
 from PIL import Image
-from googletrans import Translator
 import cv2
 import os
-from gtts import gTTS
-from langdetect import detect
 import numpy as np
 import json
 import pytesseract
@@ -19,9 +16,9 @@ print("Running updated korean.py - Version 2025-07-31 Updated")  # Version marke
 json_path = "../result/coords_b5c9010e9ecb4e818a50a6980ff64e3f.json"  # CRAFT coordinates JSON
 image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input image
 output_folder = "output_folder"
-model_path = "../FineTune/Korean/best_korean_ocr_model.pth"    # Path to your fine-tuned weights
-character_list_path = "../FineTune/Korean/training_data/character_list.txt"  # Path to character list used during training
-weights_path = "../FineTune/Korean/best_korean_ocr_model.pth"
+model_path = "../../Weights/Korean/best_korean_ocr_model.pth"    # Path to your fine-tuned weights
+character_list_path = "../../Weights/Korean/training_data/character_list.txt"  # Path to character list used during training
+weights_path = "../../Weights/Korean/best_korean_ocr_model.pth"
 # Create output directories if they don't exist
 os.makedirs(output_folder, exist_ok=True)
 
@@ -30,15 +27,6 @@ reader = easyocr.Reader(['ko', 'en'], gpu=True)
 
 # Set Tesseract path (adjust based on your system)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update this path
-
-# Initialize translator
-translator = Translator()
-
-# Language code mapping for gTTS
-lang_codes = {
-    'ko': 'ko', 'hi': 'hi', 'ru': 'ru', 'es': 'es', 'fr': 'fr',
-    'de': 'de', 'it': 'it', 'tr': 'tr', 'en': 'en'
-}
 
 # Define the fine-tuned model (same architecture as other languages)
 class SimpleCRNN(nn.Module):
@@ -246,24 +234,6 @@ def run_ocr_all(image_np, box_id):
     cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
     return None
 
-# Function to detect language
-def detect_language(text):
-    try:
-        return detect(text)
-    except:
-        return 'ko'  # Fallback to Korean for this script
-
-# Function to generate speech (optional - keeping from original structure)
-def generate_speech(text, lang_code, filename):
-    try:
-        if lang_code in lang_codes:
-            tts = gTTS(text=text, lang=lang_codes[lang_code], slow=False)
-            tts.save(filename)
-            return True
-    except Exception as e:
-        print(f"Speech generation failed: {e}")
-    return False
-
 # Function to check if text contains Korean characters
 def contains_korean(text):
     for char in text:
@@ -291,40 +261,18 @@ for idx, polygon in enumerate(polygons):
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 
-            # Detect language (with Korean character detection)
-            detected_lang = detect_language(text)
-            if contains_korean(text):
-                detected_lang = 'ko'
-            
-            # Translate to English
-            try:
-                translated_text = translator.translate(text, dest='en').text
-            except Exception as e:
-                translated_text = f"Translation failed: {e}"
-
             # Store result
-            result_data = {
+            output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
-                "translated_text": translated_text,
                 "confidence": prob,
-                "detected_language": detected_lang,
                 "contains_korean": contains_korean(text)
-            }
-            
-            # Optional: Generate speech file
-            speech_filename = os.path.join(output_folder, f"speech_{image_base}_{idx}.mp3")
-            if generate_speech(text, detected_lang, speech_filename):
-                result_data["speech_file"] = speech_filename
-            
-            output_results.append(result_data)
+            })
         else:
             output_results.append({
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
-                "translated_text": "N/A",
                 "confidence": 0.0,
-                "detected_language": "unknown",
                 "contains_korean": False
             })
     except KeyError as e:
@@ -332,9 +280,7 @@ for idx, polygon in enumerate(polygons):
         output_results.append({
             "coordinates": [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
-            "detected_language": "unknown",
             "contains_korean": False
         })
     except Exception as e:
@@ -342,9 +288,7 @@ for idx, polygon in enumerate(polygons):
         output_results.append({
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
-            "translated_text": "N/A",
             "confidence": 0.0,
-            "detected_language": "unknown",
             "contains_korean": False
         })
 
