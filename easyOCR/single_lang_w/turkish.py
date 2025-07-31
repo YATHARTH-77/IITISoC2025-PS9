@@ -15,9 +15,9 @@ print("Running final updated turkish.py - Version 2025-07-31 11:15 PM IST")  # U
 json_path = "../result/coords_b5c9010e9ecb4e818a50a6980ff64e3f.json"  # CRAFT coordinates JSON
 image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input image
 output_folder = "output_folder"
-model_path = "../FineTune/Turkish/best_turkish_ocr_model.pth"  # Path to your fine-tuned weights
-character_list_path = "../FineTune/Turkish/training_data/character_list.txt"  # Path to character list
-weights_path = "../FineTune/Turkish/best_turkish_ocr_model.pth"
+model_path = "../../Weights/Turkish/best_turkish_ocr_model.pth"  # Path to your fine-tuned weights
+character_list_path = "../../Weights/Turkish/training_data/character_list.txt"  # Path to character list
+weights_path = "../../Weights/Turkish/best_turkish_ocr_model.pth"
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
