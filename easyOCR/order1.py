@@ -13,7 +13,7 @@ def get_text_position(box: List[List[int]]) -> tuple:
     left_x = min(point[0] for point in box)
     return (top_y, left_x)
 
-def group_by_lines(text_items: List[Dict], line_threshold: int = 25) -> List[List[Dict]]:
+def group_by_lines(text_items: List[Dict], line_threshold: int = 15) -> List[List[Dict]]:
     """
     Group text items that are on the same line based on their y-coordinates.
     Items with y-coordinates within line_threshold pixels are considered on the same line.
@@ -52,7 +52,7 @@ def sort_line_items(line_items: List[Dict]) -> List[Dict]:
     """
     return sorted(line_items, key=lambda item: get_text_position(item['box'])[1])
 
-def reorder_ocr_data(input_file: str, output_file: str, line_threshold: int = 25):
+def reorder_ocr_data(input_file: str, output_file: str, line_threshold: int = 15):
     """
     Read OCR JSON data, reorder it in natural reading order, and save to output file.
     
@@ -110,7 +110,7 @@ def main():
     
     input_file = sys.argv[1]
     output_file = sys.argv[2]
-    line_threshold = int(sys.argv[3]) if len(sys.argv) > 3 else 25
+    line_threshold = int(sys.argv[3]) if len(sys.argv) > 3 else 15
     
     reorder_ocr_data(input_file, output_file, line_threshold)
 

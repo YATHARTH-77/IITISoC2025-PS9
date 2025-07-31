@@ -1,0 +1,166 @@
+{
+    "image": "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg",
+    "texts": [
+        {
+            "coordinates": [
+                [
+                    182,
+                    93
+                ],
+                [
+                    233,
+                    93
+                ],
+                [
+                    233,
+                    130
+                ],
+                [
+                    182,
+                    130
+                ]
+            ],
+            "detected_text": "Io",
+            "translated_text": "Io",
+            "confidence": 0.5826175074125121
+        },
+        {
+            "coordinates": [
+                [
+                    242,
+                    93
+                ],
+                [
+                    316,
+                    93
+                ],
+                [
+                    316,
+                    132
+                ],
+                [
+                    242,
+                    132
+                ]
+            ],
+            "detected_text": "NOT",
+            "translated_text": "NOT",
+            "confidence": 0.8911615542992137
+        },
+        {
+            "coordinates": [
+                [
+                    188,
+                    133
+                ],
+                [
+                    308,
+                    133
+                ],
+                [
+                    308,
+                    172
+                ],
+                [
+                    188,
+                    172
+                ]
+            ],
+            "detected_text": "TOUCH",
+            "translated_text": "TOUCH",
+            "confidence": 0.8511040648819921
+        },
+        {
+            "coordinates": [
+                [
+                    148,
+                    181
+                ],
+                [
+                    245,
+                    181
+                ],
+                [
+                    245,
+                    212
+                ],
+                [
+                    148,
+                    212
+                ]
+            ],
+            "detected_text": "TOOLS",
+            "translated_text": "TOOLS",
+            "confidence": 0.9992101456703425
+        },
+        {
+            "coordinates": [
+                [
+                    100,
+                    182
+                ],
+                [
+                    144,
+                    182
+                ],
+                [
+                    144,
+                    212
+                ],
+                [
+                    100,
+                    212
+                ]
+            ],
+            "detected_text": "MY",
+            "translated_text": "MY",
+            "confidence": 0.999864964167933
+        },
+        {
+            "coordinates": [
+                [
+                    149,
+                    213
+                ],
+                [
+                    305,
+                    213
+                ],
+                [
+                    305,
+                    243
+                ],
+                [
+                    149,
+                    243
+                ]
+            ],
+            "detected_text": "DAUGHTER",
+            "translated_text": "DAUGHTER",
+            "confidence": 0.9999147775680978
+        },
+        {
+            "coordinates": [
+                [
+                    98,
+                    214
+                ],
+                [
+                    142,
+                    214
+                ],
+                [
+                    142,
+                    245
+                ],
+                [
+                    98,
+                    245
+                ]
+            ],
+            "detected_text": "MY",
+            "translated_text": "MY",
+            "confidence": 0.9998508877063413
+        }
+    ]
+}
