@@ -207,8 +207,8 @@ def run_ocr_all(image_np, box_id):
         text_easyocr, conf_easyocr = "", 0.0
 
     # Define confidence thresholds
-    threshold_custom = 0.7  # Threshold for fine-tuned model
-    threshold_easyocr = 0.9  # Threshold for EasyOCR
+    threshold_custom = 0.6  # Threshold for fine-tuned model
+    threshold_easyocr = 0.5  # Threshold for EasyOCR
 
     # Select best prediction based on confidence
     if conf_custom > threshold_custom:
