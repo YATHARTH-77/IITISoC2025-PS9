@@ -81,6 +81,7 @@ function App() {
             fileName={selectedFile?.name || 'Unknown'}
             onNewImage={handleNewImage}
             ocrData={ocrData}
+            backendURL={backendURL}
           />
           <Footer />
         </div>

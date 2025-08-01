@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileText, ArrowLeft, Target, Clock, Globe, CheckCircle, Copy, Download, Volume2, Loader2, Play, BookOpenText} from 'lucide-react';
 
 // Results View Component
-export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
+export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
   const [copied, setCopied] = useState(false);
   const [copiedTranslated, setCopiedTranslated] = useState(false);
   const [scale, setScale] = useState({ x: 1, y: 1 });
