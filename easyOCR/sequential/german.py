@@ -296,7 +296,7 @@ def process_region(args):
 
 # Process each text region in parallel
 output_results = []
-with ThreadPoolExecutor(max_workers=8) as executor:  # Adjust max_workers based on your system
+with ThreadPoolExecutor(max_workers=14) as executor:  # Adjust max_workers based on your system
     output_results = list(executor.map(process_region, zip(polygons, range(len(polygons)))))
 
 # Save results to JSON
