@@ -102,7 +102,8 @@ print(f"Checkpoint keys: {checkpoint.keys()}")  # Debug checkpoint structure
 print(f"Character list: {checkpoint['character_list']}")  # Debug character list
 charset = ''.join(checkpoint['character_list'])  # Extract character list from checkpoint
 num_chars = len(charset)
-num_classes = num_chars + 1  # +1 for CTC blank
+print(f"Number of characters: {num_chars}")  # Debug number of characters
+num_classes = 363  # Explicitly set to match checkpoint (362 characters + 1 for CTC blank)
 char_to_idx = {char: idx + 1 for idx, char in enumerate(charset)}  # +1 because 0 is for CTC blank
 
 # Load the fine-tuned model
