@@ -5,6 +5,12 @@ import { ResultsView } from './ResultView.jsx';
 
 // Main App Component
 function App() {
+  const backendURL = 
+                      process.env.REACT_APP_API_URL || 
+                     'http://localhost:5000';
+
+
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,7 +36,7 @@ function App() {
         console.log("Selected language:", selectedLanguage);
         console.log("Is handwritten:", isHandwritten);
         console.log("Form data:", formData);
-        await fetch('http://localhost:5000/result', {
+        await fetch(`${backendURL}/result`, {
           method: 'POST',
           body: formData,
         });
@@ -43,7 +49,7 @@ function App() {
     
     
     // Simulate OCR processing
-    const data = await fetch("http://localhost:5000/static/final_data.json");
+    const data = await fetch(`${backendURL}/static/final_data.json`);
     if (!data.ok) {
       throw new Error(`HTTP error: ${data.status}`);
     }
