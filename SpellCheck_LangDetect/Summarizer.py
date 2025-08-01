@@ -1,17 +1,28 @@
+# -*- coding: utf-8 -*-
 import os
 from groq import Groq
 
 # Replace with your actual Groq API Key or set it in your environment
-os.environ["GROQ_API_KEY"] = "#API_KEY"
+os.environ["GROQ_API_KEY"] = "#API Key"
 
 def summarize_text(text, model="llama3-70b-8192"):
     client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
     prompt = """
-    You are a professional summarizer. Read the full input text carefully and thoroughly. Do not start summarizing until you have completely processed the entire content. Your goal is to understand the core message, main arguments, and key insights. Once you have understood everything, generate a well-structured summary in English only. The summary should be concise, informative, and accurate, capturing all important points without omitting critical details. Do not translate. Do not include your own opinion. Do not add any preamble, labels, or comments—output the summary only.Your output must be **only the summary** — do not include any title, label, comment, or metadata.
+    You are a professional summarizer. Read the full input text carefully and thoroughly. Do not start summarizing until you have completely understood the content.
+
+    Your task is to generate a summary in the **same language** as the input text. The summary must retain the core message, key insights, and essential facts, without adding personal opinions or external information.
+
+    ⚠️ The summary must be approximately **20% of the word count** of the original input text.
+
+    ❌ Do NOT include any introductory phrases like "Summary:", "Here is...", "This is a summary...", or any preamble, title, heading, or commentary.
+
+    ✅ Your output should be the summary **only**, in plain text—clean, concise, and structured.
 
     Input Text:
     """ + text
+
+
 
     response = client.chat.completions.create(
         model=model,
