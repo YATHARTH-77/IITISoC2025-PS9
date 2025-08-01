@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileText, ArrowLeft, Target, Clock, Globe, CheckCircle, Copy, Download, Volume2, Loader2, Play, BookOpenText} from 'lucide-react';
 
 // Results View Component
-export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
+export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
   const [copied, setCopied] = useState(false);
   const [copiedTranslated, setCopiedTranslated] = useState(false);
   const [scale, setScale] = useState({ x: 1, y: 1 });
@@ -45,7 +45,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
 
   const imageUrl = useMemo(() => {
   const timestamp = new Date().getTime();
-  return `http://localhost:5000/static/preprocess.png?ts=${timestamp}`;
+  return `${backendURL}/static/preprocess.png?ts=${timestamp}`;
 }, [fileName]);
 
 
@@ -75,19 +75,19 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
         formData.append('isTranslatedAudioRequest', isAllTextAudioProcessing);
       }
       const audioFileName = results[selectedBox].audio_file;
-      await fetch(`http://localhost:5000/audio`, {
+      await fetch(`${backendURL}/audio`, {
         method: 'POST',
         body: formData,
       }
       );
       // if(indexselected != selectedBox) return; // Check if still selected
       if (!Boolean) {
-        setAudioUrl(`http://localhost:5000/static/data.mp3?t=${Date.now()}`);
+        setAudioUrl(`${backendURL}/static/data.mp3?t=${Date.now()}`);
         setHaveAudio(true);
         setIsProcessingAudio(false); 
       }
       else{
-        setAllTextAudioUrl(`http://localhost:5000/static/alldata.mp3?t=${Date.now()}`);
+        setAllTextAudioUrl(`${backendURL}/static/alldata.mp3?t=${Date.now()}`);
         setHaveAllTextAudio(true);
         setIsAllTextAudioProcessing(false);
       }
@@ -102,11 +102,11 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
       formData.append('isAllText', true);
       formData.append('text', allTranslatedText);
       formData.append('isTranslatedAudioRequest', isAllTextAudioProcessing);
-      await fetch(`http://localhost:5000/audio`, {
+      await fetch(`${backendURL}/audio`, {
         method: 'POST',
         body: formData,
       });
-      setTranslatedAudioUrl(`http://localhost:5000/static/translated_data.mp3?t=${Date.now()}`);
+      setTranslatedAudioUrl(`${backendURL}/static/translated_data.mp3?t=${Date.now()}`);
       setHaveTranslatedAudio(true);
       setIsProcessingTranslatedAudio(false);
     } catch (error) {
@@ -129,7 +129,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
         setIsAllTextTranslating(true);
       }
       if(!Boolean) {
-      setTranslatedText((await (await fetch(`http://localhost:5000/translate`, {
+      setTranslatedText((await (await fetch(`${backendURL}/translate`, {
                                     method: 'POST',
                                     body: formData,
                                   })).json()).translated_text);
@@ -137,7 +137,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
         setIsAllTextTranslated(true);
       }
       else{
-        setAllTranslatedText((await (await fetch(`http://localhost:5000/translate`, {
+        setAllTranslatedText((await (await fetch(`${backendURL}/translate`, {
                                     method: 'POST',
                                     body: formData,
                                   })).json()).translated_text);
@@ -811,8 +811,8 @@ export const ResultsView = ({ fileName, onNewImage, ocrData }) => {
               try {
                     const formData = new FormData();
                     formData.append('text', allExtractedText);
-                    
-                    const response = await fetch('http://localhost:5000/summarize', {
+
+                    const response = await fetch(`${backendURL}/summarize`, {
                       method: 'POST',
                       body: formData
                     });
