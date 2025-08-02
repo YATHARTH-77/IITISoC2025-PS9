@@ -43,11 +43,16 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
   const imgRef = useRef(null);
   const containerRef = useRef(null);
 
+//   const imageUrl = useMemo(() => {
+//   const timestamp = new Date().getTime();
+//   return `${backendURL}/static/preprocess.png?ts=${timestamp}`;
+// }, [fileName]);
   const imageUrl = useMemo(() => {
   const timestamp = new Date().getTime();
-  return `${backendURL}/static/preprocess.png?ts=${timestamp}`;
+  const url = `${backendURL}/static/preprocess.png?ts=${timestamp}`;
+  console.log('Image URL generated:', url);
+  return url;
 }, [fileName]);
-
 
   const playAudio = (URL) => {
     if (URL) {
