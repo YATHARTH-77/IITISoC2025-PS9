@@ -7,10 +7,6 @@ A versatile OCR platform that automatically detects, recognizes, and processes t
 
 ---
 
-### 📸 Example Usage
-
-
-
 ### ⚙️ Local Setup Guide
 
 > *Instructions for setting up and running PolyOCR locally.*
@@ -48,7 +44,12 @@ pip install -r requirements.txt
 python craftservice.py #in craftenv
 python app.py #in polyocrenv
 ```
-
+```bash
+#For local hosting
+cd front
+npm i
+npm start
+```
 ---
 
 ### 🛠️ Model Details
@@ -61,8 +62,9 @@ python app.py #in polyocrenv
 
 **Text Recognition**
 
-> *Details about your fine-tuned EasyOCR models and TrOCR for handwritten English. (To be added)*
+> *We have mainly used a fine-tuned [EasyOCR model](https://github.com/JaidedAI/EasyOCR) trained on the [ICDAR 2019 MLT dataset](https://www.kaggle.com/datasets/zubairalibhutto/mlt-19-ocr-dataset) and synthetic datasets for multilingual printed text recognition. As a fallback, we have implemented [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) for enhanced robustness.*
 
+>*For English handwritten text recognition, we use [TrOCR — a Transformer-based model](https://github.com/rsommerfeld/trocr) that performs end-to-end handwritten text recognition.*
 ---
 
 ### ✨ Additional Features
