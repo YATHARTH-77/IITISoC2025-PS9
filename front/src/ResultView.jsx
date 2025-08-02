@@ -81,16 +81,22 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
     try {
       const formData = new FormData();
       if (!Boolean) {
-        setIsProcessingAudio(true);
-        formData.append('text', results[selectedBox].detected_text || '');
-        formData.append('isAllText', Boolean || false);
-        formData.append('isTranslatedAudioRequest', isProcessingTranslatedAudio);
-      }
-      else{
         setIsAllTextAudioProcessing(true);
         formData.append('isAllText', true);
         formData.append('text', allExtractedText);
         formData.append('isTranslatedAudioRequest', isAllTextAudioProcessing);
+      }
+      else if(IsTranslatedAudioRequest){
+        setIsAllTextAudioProcessing(true);
+        formData.append('isAllText', false);
+        formData.append('text', allExtractedText);
+        formData.append('isTranslatedAudioRequest', isAllTextAudioProcessing);
+      }
+      else{
+        setIsProcessingAudio(true);
+        formData.append('text', results[selectedBox].detected_text || '');
+        formData.append('isAllText', Boolean || false);
+        formData.append('isTranslatedAudioRequest', isProcessingTranslatedAudio);
       }
       const audioFileName = results[selectedBox].audio_file;
       await fetch(`${backendURL}/audio`, {
@@ -103,6 +109,12 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
         setAudioUrl(`${backendURL}/static/data.mp3?t=${Date.now()}`);
         setHaveAudio(true);
         setIsProcessingAudio(false); 
+      }
+      else if(isProcessingTranslatedAudio){
+        setAudioUrl(`${backendURL}/static/data.mp3?t=${Date.now()}`);
+        setHaveAudio(true);
+        setIsProcessingTranslateAudio(false); 
+
       }
       else{
         setAllTextAudioUrl(`${backendURL}/static/alldata.mp3?t=${Date.now()}`);
@@ -985,26 +997,10 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
               </>
             )}
 
-            {(!isAllTextTranslating && !isAllTextTranslated) && (
-                <button
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-colors duration-200"
-                  onClick={() => getTranslate(true)}
-                >
-                  <Globe className="w-4 h-4" />
-                </button>
-              )}
-            {(isAllTextTranslating && !isAllTextTranslated) && (
-                <button
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-colors duration-200"
-                  disabled
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                </button>
-              )}
             <button
               onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText(allExtractedText);
+                          await navigator.clipboard.writeText(summarizedAllExtractedText);
                           setCopied(true);
                           setTimeout(() => setCopied(false), 2000);
                         } catch (err) {
@@ -1034,7 +1030,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
             <button
               onClick={() => {
                         const element = document.createElement('a');
-                        const file = new Blob([allExtractedText], { type: 'text/plain' });
+                        const file = new Blob([summarizedAllExtractedText], { type: 'text/plain' });
                         element.href = URL.createObjectURL(file);
                         element.download = `ocr-result-${fileName.split('.')[0]}.txt`;
                         document.body.appendChild(element);

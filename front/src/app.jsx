@@ -5,7 +5,7 @@ import { ResultsView } from './ResultView.jsx';
 
 // Main App Component
 function App() {
-  const backendURL = process.env.REACT_APP_API_URL || 'https://2fd9af60f5d7.ngrok-free.app';
+  const backendURL =  'https://localhost:5000';
 
 
 
