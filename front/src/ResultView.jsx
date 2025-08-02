@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileText, ArrowLeft, Target, Clock, Globe, CheckCircle, Copy, Download, Volume2, Loader2, Play, BookOpenText} from 'lucide-react';
 
 // Results View Component
-export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
+export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selectedFile }) => {
   const [copied, setCopied] = useState(false);
   const [copiedTranslated, setCopiedTranslated] = useState(false);
   const [scale, setScale] = useState({ x: 1, y: 1 });
@@ -28,7 +28,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
   const [haveTranslatedAudio, setHaveTranslatedAudio] = useState(false);
   const [translatedAudioUrl, setTranslatedAudioUrl] = useState(null);
   const [summarizedAllExtractedText,setSummarizedAllExtractedText] = useState("");
-
+  const [imageUrl,setImageUrl] = useState('');
   // Handle both old and new data structure
   const results = ocrData?.results || [];
   const processingTime = ocrData?.processing_time || 0;
@@ -42,17 +42,27 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL }) => {
 
   const imgRef = useRef(null);
   const containerRef = useRef(null);
+  
+  React.useEffect(() => {
+      const url = URL.createObjectURL(selectedFile);
+      setImageUrl(url);
+  
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }, [selectedFile]);
+
 
 //   const imageUrl = useMemo(() => {
 //   const timestamp = new Date().getTime();
 //   return `${backendURL}/static/preprocess.png?ts=${timestamp}`;
 // }, [fileName]);
-  const imageUrl = useMemo(() => {
-  const timestamp = new Date().getTime();
-  const url = `${backendURL}/static/preprocess.png?ts=${timestamp}`;
-  console.log('Image URL generated:', url);
-  return url;
-}, [fileName]);
+//   const imageUrl = useMemo(() => {
+//   const timestamp = new Date().getTime();
+//   const url = `${backendURL}/static/preprocess.png?ts=${timestamp}`;
+//   console.log('Image URL generated:', url);
+//   return url;
+// }, [fileName]);
 
   const playAudio = (URL) => {
     if (URL) {
