@@ -49,7 +49,7 @@ python app.py #in polyocrenv
 cd front
 npm i
 npm start
-
+```
 ---
 
 ### 🛠️ Model Details
