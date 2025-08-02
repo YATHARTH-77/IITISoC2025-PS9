@@ -7,10 +7,6 @@ A versatile OCR platform that automatically detects, recognizes, and processes t
 
 ---
 
-### 📸 Example Usage
-
-
-
 ### ⚙️ Local Setup Guide
 
 > *Instructions for setting up and running PolyOCR locally.*
