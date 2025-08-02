@@ -50,6 +50,16 @@ function App() {
     
     
     // Simulate OCR processing
+    await fetch(`${backendURL}/static/final_data.json?t=${Date.now()}`,{
+      headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+    });
+    await fetch(`${backendURL}/static/final_data.json?t=${Date.now()}`,{
+      headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+    });
     const data = await fetch(`${backendURL}/static/final_data.json?t=${Date.now()}`,{
       headers: {
             'ngrok-skip-browser-warning': 'true'
