@@ -152,7 +152,6 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
                                     body: formData,
                                   })).json()).translated_text);
         setIsProcessingTranslate(false);
-        setIsAllTextTranslated(true);
       }
       else{
         setAllTranslatedText((await (await fetch(`${backendURL}/translate`, {
