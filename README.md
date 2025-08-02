@@ -44,6 +44,11 @@ pip install -r requirements.txt
 python craftservice.py #in craftenv
 python app.py #in polyocrenv
 ```
+```bash
+#For local hosting
+cd front
+npm i
+npm start
 
 ---
 
