@@ -44,13 +44,16 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
   const containerRef = useRef(null);
   
   React.useEffect(() => {
-      const url = URL.createObjectURL(selectedFile);
-      setImageUrl(url);
-  
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }, [selectedFile]);
+  if (selectedFile) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result); // Sets Base64 data URL
+    };
+    reader.readAsDataURL(selectedFile);
+  } else {
+    setImageUrl('');
+  }
+}, [selectedFile]);
 
 
 //   const imageUrl = useMemo(() => {
