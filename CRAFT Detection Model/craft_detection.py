@@ -119,8 +119,8 @@ def detect_text(image_path, output_dir, trained_model='weights/craft_mlt_25k.pth
     return scaled_boxes, scaled_polys
 
 if __name__ == "__main__":
-    image_dir = 'test_images'
-    output_dir = '../easyOCR/result'
+    image_dir = 'testing'
+    output_dir = '../easyOCR/testing'
     trained_model = 'weights/craft_mlt_25k.pth'
     cuda = False
     poly = False
