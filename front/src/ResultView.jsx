@@ -113,7 +113,7 @@ export const ResultsView = ({ fileName, onNewImage, ocrData, backendURL, selecte
       else if(isProcessingTranslatedAudio){
         setAudioUrl(`${backendURL}/static/data.mp3?t=${Date.now()}`);
         setHaveAudio(true);
-        setIsProcessingTranslateAudio(false); 
+        // setIsProcessingTranslateAudio(false); 
 
       }
       else{
