@@ -8,9 +8,12 @@ export const UploadSection = ({ onFileSelect }) => {
 
   const handleFile = (file) => {
     if (file && (file.type === 'image/jpeg' || file.type === 'image/png'|| file.type === 'image/jpg')) {
+      if(file.type === 'image/heif'){
+        alert('Please upload a valid image file (JPEG or PNG or JPG) not HEIF.');
+      }
       onFileSelect(file);
     } else {
-      alert('Please upload a valid image file (JPEG or PNG).');
+      alert('Please upload a valid image file (JPEG or PNG or JPG).');
     }
   };
 
