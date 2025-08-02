@@ -5,8 +5,7 @@ import { ResultsView } from './ResultView.jsx';
 
 // Main App Component
 function App() {
-  const backendURL = 
-                      process.env.REACT_APP_API_URL;
+  const backendURL = process.env.REACT_APP_API_URL || 'https://2fd9af60f5d7.ngrok-free.app';
 
 
 
@@ -38,6 +37,9 @@ function App() {
         await fetch(`${backendURL}/result`, {
           method: 'POST',
           body: formData,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
         });
         setShowResults(true);
       } catch (error) {
@@ -48,7 +50,11 @@ function App() {
     
     
     // Simulate OCR processing
-    const data = await fetch(`${backendURL}/static/final_data.json`);
+    const data = await fetch(`${backendURL}/static/final_data.json?t=${Date.now()}`,{
+      headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+    });
     if (!data.ok) {
       throw new Error(`HTTP error: ${data.status}`);
     }
