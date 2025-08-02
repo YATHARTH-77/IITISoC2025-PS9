@@ -8,6 +8,7 @@ import pytesseract
 import torch
 import torch.nn as nn
 from torchvision import transforms
+from concurrent.futures import ThreadPoolExecutor
 
 print("Running final updated russian.py - Version 2025-07-31 10:15 PM IST")  # Unique version marker
 
@@ -233,52 +234,62 @@ def run_ocr_all(image_np, box_id):
     print(f"Saved no_text_detected_{box_id}.png")
     return None
 
-# Process each text region
-output_results = []
-image_base = os.path.basename(image_path).split('.')[0]
-
-for idx, polygon in enumerate(polygons):
+# Function to process a single region
+def process_region(args):
+    polygon, idx = args
     try:
         print(f"Processing region {idx}")
-        # Extract coordinates and crop image
-        x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
-        cropped_image = image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
-        cropped_image_np = np.array(cropped_image)
-        print(f"Cropped image shape for region {idx}: {cropped_image_np.shape}")
+        # Reload image for this region to avoid threading issues
+        with Image.open(image_path) as region_image:
+            if region_image is None:
+                raise ValueError("Image.open returned None")
+            # Extract coordinates and crop image
+            x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
+            cropped_image = region_image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
+            if cropped_image is None:
+                raise ValueError("Cropping returned None")
+            print(f"Cropped image mode for region {idx}: {cropped_image.mode}, size: {cropped_image.size}")
+            cropped_image_np = np.array(cropped_image)
 
         # Run OCR
+        image_base = os.path.basename(image_path).split('.')[0]
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 
             # Store result
-            output_results.append({
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
                 "confidence": prob,
-            })
+            }
         else:
-            output_results.append({
+            print(f"Region {idx} - No text detected")
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
                 "confidence": 0.0,
-            })
-            print(f"Region {idx} - No text detected")
+            }
     except KeyError as e:
         print(f"Error processing region {idx}: Missing coordinates - {e}")
-        output_results.append({
+        return {
             "coordinates": [],
             "detected_text": f"Error: {e}",
             "confidence": 0.0,
-        })
+        }
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
-        output_results.append({
+        return {
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
             "confidence": 0.0,
-        })
+        }
+
+# Process each text region in parallel
+output_results = []
+with ThreadPoolExecutor(max_workers=8) as executor:  # Adjust max_workers based on your system
+    output_results = list(executor.map(process_region, zip(polygons, range(len(polygons)))))
 
 # Save results to JSON
 output_json_path = os.path.join(output_folder, "results_russian.json")

@@ -8,6 +8,7 @@ import pytesseract
 import torch
 import torch.nn as nn
 from torchvision import transforms
+from concurrent.futures import ThreadPoolExecutor
 
 print("Running final updated french.py - Version 2025-07-31 03:05 PM IST")  # Unique version marker
 
@@ -15,9 +16,9 @@ print("Running final updated french.py - Version 2025-07-31 03:05 PM IST")  # Un
 json_path = "../result/coords_b5c9010e9ecb4e818a50a6980ff64e3f.json"  # CRAFT coordinates JSON
 image_path = "../result/res_b5c9010e9ecb4e818a50a6980ff64e3f.jpg"    # Input image
 output_folder = "output_folder"
-model_path = "../FineTune/French/best_french_ocr_model.pth"    # Path to your fine-tuned weights
-character_list_path = "../FineTune/French/training_data/character_list.txt"  # Path to character list used during training
-weights_path = "../FineTune/French/best_french_ocr_model.pth"
+model_path = "../../Weights/French/best_french_ocr_model.pth"    # Path to your fine-tuned weights
+character_list_path = "../../Weights/French/training_data/character_list.txt"  # Path to character list used during training
+weights_path = "../../Weights/French/best_french_ocr_model.pth"
 
 # Create output directories if they don’t exist
 os.makedirs(output_folder, exist_ok=True)
@@ -212,48 +213,59 @@ def run_ocr_all(image_np, box_id):
     cv2.imwrite(os.path.join(output_folder, f"no_text_detected_{box_id}.png"), image_np)
     return None
 
-# Process each text region
-output_results = []
-image_base = os.path.basename(image_path).split('.')[0]
-for idx, polygon in enumerate(polygons):
+# Function to process a single region
+def process_region(args):
+    polygon, idx = args
     try:
         # Extract coordinates and crop image
         x_min, y_min, x_max, y_max = get_bounding_rect(polygon)
-        cropped_image = image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
-        cropped_image_np = np.array(cropped_image)
+        with Image.open(image_path) as region_image:
+            if region_image is None:
+                raise ValueError("Image.open returned None")
+            cropped_image = region_image.crop((x_min, y_min, x_max, y_max)).convert('RGB')
+            if cropped_image is None:
+                raise ValueError("Cropping returned None")
+            print(f"Region {idx} - Cropped image mode: {cropped_image.mode}, size: {cropped_image.size}")
+            cropped_image_np = np.array(cropped_image)
 
         # Run OCR
+        image_base = os.path.basename(image_path).split('.')[0]
         best_result = run_ocr_all(cropped_image_np, f"{image_base}_{idx}")
         if best_result and len(best_result) == 3:
             bbox, text, prob = best_result
             print(f"Region {idx} - Detected Text: {text} (Confidence: {prob:.2f})")
 
             # Store result
-            output_results.append({
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": text,
                 "confidence": prob,
-            })
+            }
         else:
-            output_results.append({
+            return {
                 "coordinates": get_coordinates(polygon),
                 "detected_text": "No text detected",
                 "confidence": 0.0,
-            })
+            }
     except KeyError as e:
         print(f"Error processing region {idx}: {e}")
-        output_results.append({
+        return {
             "coordinates": [],
             "detected_text": f"Error: {e}",
             "confidence": 0.0,
-        })
+        }
     except Exception as e:
         print(f"Error processing region {idx}: {e}")
-        output_results.append({
+        return {
             "coordinates": get_coordinates(polygon) if "coordinates" in polygon else [],
             "detected_text": f"Error: {e}",
             "confidence": 0.0,
-        })
+        }
+
+# Process each text region in parallel
+output_results = []
+with ThreadPoolExecutor(max_workers=8) as executor:  # Adjust max_workers based on your system
+    output_results = list(executor.map(process_region, zip(polygons, range(len(polygons)))))
 
 # Save results to JSON
 output_json_path = os.path.join(output_folder, "results_french.json")
